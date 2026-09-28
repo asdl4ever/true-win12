@@ -49,8 +49,8 @@ const minimized = ref(false)
   align-items: center;
   gap: 9px;
   padding: 10px 8px 10px 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0));
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+  border-bottom: 1px solid var(--ink-line);
 }
 
 .win-app {
@@ -88,7 +88,7 @@ const minimized = ref(false)
 }
 
 .win-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.8);
   opacity: 1;
 }
 

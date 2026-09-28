@@ -175,12 +175,12 @@ onBeforeUnmount(() => {
 
 /* ------------------------------ 外观实时参数 ------------------------------ */
 
-const accent = ref('#a78bfa')
+const accent = ref('#6d4ab8')
 const accents = [
-  { name: '紫罗兰', value: '#a78bfa' },
-  { name: '海蓝', value: '#7cc2ff' },
-  { name: '薄荷', value: '#6ee7b7' },
-  { name: '落霞', value: '#fda4af' },
+  { name: '紫罗兰', value: '#6d4ab8' },
+  { name: '蜂蜜', value: '#a86a10' },
+  { name: '抹茶', value: '#4f7a44' },
+  { name: '莓果', value: '#a83a68' },
 ]
 const blur = ref(24)
 const radius = ref(20)
@@ -344,7 +344,7 @@ function openApp(app: (typeof pinned)[number]) {
                     hide-details
                     variant="solo"
                     flat
-                    bg-color="rgba(255, 255, 255, 0.12)"
+                    bg-color="rgba(255, 255, 255, 0.55)"
                     placeholder="搜索文件与文件夹"
                     prepend-inner-icon="mdi-magnify"
                   />
@@ -410,9 +410,9 @@ function openApp(app: (typeof pinned)[number]) {
                 :disabled="!effects"
                 hide-details
                 density="compact"
-                color="#ffffff"
-                track-color="rgba(255, 255, 255, 0.28)"
-                track-fill-color="rgba(255, 255, 255, 0.85)"
+                color="#3d2b0e"
+                track-color="rgba(61, 43, 14, 0.22)"
+                track-fill-color="rgba(61, 43, 14, 0.7)"
               />
 
               <div class="set-row">
@@ -426,9 +426,9 @@ function openApp(app: (typeof pinned)[number]) {
                 :step="2"
                 hide-details
                 density="compact"
-                color="#ffffff"
-                track-color="rgba(255, 255, 255, 0.28)"
-                track-fill-color="rgba(255, 255, 255, 0.85)"
+                color="#3d2b0e"
+                track-color="rgba(61, 43, 14, 0.22)"
+                track-fill-color="rgba(61, 43, 14, 0.7)"
               />
 
               <v-switch
@@ -437,7 +437,7 @@ function openApp(app: (typeof pinned)[number]) {
                 label="透明与模糊效果"
                 hide-details
                 density="compact"
-                color="#ffffff"
+                color="#3d2b0e"
               />
             </div>
           </GlassWindow>
@@ -475,8 +475,8 @@ function openApp(app: (typeof pinned)[number]) {
                   :model-value="progress"
                   height="4"
                   rounded
-                  color="#ffffff"
-                  bg-color="rgba(255, 255, 255, 0.25)"
+                  color="#3d2b0e"
+                  bg-color="rgba(61, 43, 14, 0.18)"
                 />
                 <div class="player-actions">
                   <v-btn icon="mdi-skip-backward" variant="text" size="small" aria-label="上一首" />
@@ -568,7 +568,7 @@ function openApp(app: (typeof pinned)[number]) {
           hide-details
           variant="solo"
           flat
-          bg-color="rgba(255, 255, 255, 0.12)"
+          bg-color="rgba(255, 255, 255, 0.55)"
           placeholder="搜索应用、文件与设置"
           prepend-inner-icon="mdi-magnify"
         />
@@ -611,7 +611,7 @@ function openApp(app: (typeof pinned)[number]) {
       </section>
     </transition>
 
-    <v-snackbar v-model="toast" :timeout="1900" location="bottom" color="rgba(30, 18, 62, 0.9)">
+    <v-snackbar v-model="toast" :timeout="1900" location="bottom" color="rgba(61, 43, 14, 0.92)">
       {{ toastText }}
     </v-snackbar>
   </v-app>
@@ -625,14 +625,14 @@ function openApp(app: (typeof pinned)[number]) {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(58% 48% at 16% 10%, rgba(255, 255, 255, 0.26), transparent 70%),
+    radial-gradient(58% 48% at 16% 8%, rgba(255, 255, 255, 0.62), transparent 70%),
     radial-gradient(
-      42% 44% at 90% 80%,
-      color-mix(in srgb, var(--accent) 70%, transparent),
+      46% 46% at 88% 78%,
+      color-mix(in srgb, var(--accent) 30%, transparent),
       transparent 72%
     ),
-    radial-gradient(34% 34% at 74% 6%, rgba(124, 194, 255, 0.26), transparent 70%);
-  filter: blur(4px);
+    radial-gradient(36% 36% at 74% 4%, rgba(255, 196, 96, 0.55), transparent 70%);
+  filter: blur(6px);
   transition: background 0.6s ease;
 }
 
@@ -666,7 +666,7 @@ function openApp(app: (typeof pinned)[number]) {
   border: 1px solid transparent;
   border-radius: 12px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text);
   font-family: var(--body-font);
   font-size: 11px;
   line-height: 1.2;
@@ -677,13 +677,13 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .desk-icon:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.62);
+  border-color: var(--ink-line);
 }
 
 .desk-icon.selected {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(61, 43, 14, 0.28);
 }
 
 .stage {
@@ -725,8 +725,8 @@ function openApp(app: (typeof pinned)[number]) {
   .win:hover > .glass-window {
     transform: scale(1.05);
     box-shadow:
-      0 32px 72px rgba(24, 12, 58, 0.46),
-      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+      0 32px 72px rgba(140, 100, 30, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
   }
 }
 
@@ -763,8 +763,8 @@ function openApp(app: (typeof pinned)[number]) {
   transition: none;
   transform: scale(1.02);
   box-shadow:
-    0 34px 74px rgba(24, 12, 58, 0.48),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 34px 74px rgba(140, 100, 30, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 /* ------------------------------ 资源管理器内部 ----------------------------- */
@@ -780,7 +780,7 @@ function openApp(app: (typeof pinned)[number]) {
   flex-direction: column;
   gap: 2px;
   padding: 12px 8px;
-  border-inline-end: 1px solid rgba(255, 255, 255, 0.12);
+  border-inline-end: 1px solid var(--ink-line);
 }
 
 .ex-place {
@@ -791,7 +791,7 @@ function openApp(app: (typeof pinned)[number]) {
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text);
   font-family: var(--body-font);
   font-size: 12.5px;
   text-align: start;
@@ -802,13 +802,13 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .ex-place:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text);
 }
 
 .ex-place.on {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--text);
 }
 
 .ex-main {
@@ -826,7 +826,7 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .ex-tools :deep(.v-btn) {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text);
 }
 
 .glass-field :deep(.v-field) {
@@ -835,12 +835,12 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .glass-field :deep(.v-field__prepend-inner .v-icon) {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
   opacity: 1;
 }
 
 .glass-field :deep(.v-field__input) {
-  color: #fff;
+  color: var(--text);
   font-size: 13px;
   min-height: 34px;
   padding-top: 4px;
@@ -848,7 +848,7 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .glass-field :deep(input::placeholder) {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-muted);
   opacity: 1;
 }
 
@@ -870,8 +870,8 @@ function openApp(app: (typeof pinned)[number]) {
   padding: 12px 12px 11px;
   border: 1px solid transparent;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text);
   font-family: var(--body-font);
   text-align: start;
   cursor: pointer;
@@ -881,12 +881,12 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .file:hover {
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .file.on {
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
-  border-color: rgba(255, 255, 255, 0.32);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .file-name {
@@ -897,14 +897,14 @@ function openApp(app: (typeof pinned)[number]) {
 
 .file-meta {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
 }
 
 .empty {
   grid-column: 1 / -1;
   margin: 12px 2px;
   font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--text-muted);
 }
 
 /* --------------------------------- 设置内部 -------------------------------- */
@@ -917,7 +917,7 @@ function openApp(app: (typeof pinned)[number]) {
   margin: 0 0 14px;
   font-size: 12.5px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-muted);
 }
 
 .set-row {
@@ -935,7 +935,7 @@ function openApp(app: (typeof pinned)[number]) {
 .set-value {
   font-family: var(--display-font);
   font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-muted);
 }
 
 .swatches {
@@ -946,7 +946,7 @@ function openApp(app: (typeof pinned)[number]) {
 .swatch {
   width: 21px;
   height: 21px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--ink-line);
   border-radius: 50%;
   background: var(--sw);
   cursor: pointer;
@@ -960,7 +960,9 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .swatch.on {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.32);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 0 0 4px rgba(61, 43, 14, 0.3);
 }
 
 .settings :deep(.v-slider) {
@@ -968,7 +970,7 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .glass-switch :deep(.v-label) {
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--text);
   font-size: 12.5px;
   opacity: 1;
 }
@@ -1003,14 +1005,14 @@ function openApp(app: (typeof pinned)[number]) {
   font-family: var(--display-font);
   font-weight: 600;
   font-size: 15px;
-  color: rgba(255, 255, 255, 0.68);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .clock-date {
   margin: 6px 0 14px;
   font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-muted);
 }
 
 .wx {
@@ -1018,9 +1020,9 @@ function openApp(app: (typeof pinned)[number]) {
   align-items: center;
   gap: 11px;
   padding: 11px 13px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--ink-line);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .wx strong {
@@ -1031,15 +1033,15 @@ function openApp(app: (typeof pinned)[number]) {
 
 .wx span {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--text-muted);
 }
 
 .player {
   margin-top: 12px;
   padding: 12px 13px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--ink-line);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .player-head {
@@ -1057,7 +1059,7 @@ function openApp(app: (typeof pinned)[number]) {
 .player-artist {
   margin-inline-start: auto;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
 }
 
 .player-actions {
@@ -1069,12 +1071,12 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .player-actions :deep(.v-btn) {
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--text);
 }
 
 .player-play {
   background: var(--accent);
-  color: #241348;
+  color: #fffdf5;
 }
 
 .agenda {
@@ -1091,7 +1093,7 @@ function openApp(app: (typeof pinned)[number]) {
   gap: 10px;
   font-size: 12px;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text);
 }
 
 .agenda-time {
@@ -1136,7 +1138,7 @@ function openApp(app: (typeof pinned)[number]) {
   border: 1px solid transparent;
   border-radius: 12px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text);
   cursor: pointer;
   transition:
     background 0.2s ease,
@@ -1144,8 +1146,8 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .tb-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--ink-line);
 }
 
 .tb-btn.running::after {
@@ -1166,10 +1168,10 @@ function openApp(app: (typeof pinned)[number]) {
   gap: 7px;
   height: 40px;
   padding: 0 16px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--ink-line);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text);
   font-family: var(--body-font);
   font-size: 12.5px;
   cursor: pointer;
@@ -1177,7 +1179,7 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .tb-search:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .tb-tray {
@@ -1186,8 +1188,8 @@ function openApp(app: (typeof pinned)[number]) {
   gap: 10px;
   margin-inline-start: 8px;
   padding-inline-start: 14px;
-  border-inline-start: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(255, 255, 255, 0.85);
+  border-inline-start: 1px solid var(--ink-line);
+  color: var(--text);
 }
 
 .tb-clock {
@@ -1206,7 +1208,7 @@ function openApp(app: (typeof pinned)[number]) {
   font-style: normal;
   font-weight: 400;
   font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--text-muted);
 }
 
 .tb-bell {
@@ -1249,7 +1251,7 @@ function openApp(app: (typeof pinned)[number]) {
   margin: 16px 2px 9px;
   font-size: 11.5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
 }
 
 .tiles {
@@ -1266,8 +1268,8 @@ function openApp(app: (typeof pinned)[number]) {
   padding: 13px 6px 11px;
   border: 1px solid transparent;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text);
   font-family: var(--body-font);
   font-size: 11.5px;
   line-height: 1.3;
@@ -1278,8 +1280,8 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .tile:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.62);
+  border-color: var(--ink-line);
 }
 
 .recent {
@@ -1302,7 +1304,7 @@ function openApp(app: (typeof pinned)[number]) {
 }
 
 .recent li:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .recent-name {
@@ -1312,7 +1314,7 @@ function openApp(app: (typeof pinned)[number]) {
 .recent-meta {
   margin-inline-start: auto;
   font-size: 10.5px;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--text-muted);
 }
 
 .start-foot {
@@ -1321,7 +1323,7 @@ function openApp(app: (typeof pinned)[number]) {
   gap: 10px;
   margin-top: 18px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-top: 1px solid var(--ink-line);
 }
 
 .avatar {
@@ -1331,7 +1333,7 @@ function openApp(app: (typeof pinned)[number]) {
   height: 30px;
   border-radius: 50%;
   background: var(--accent);
-  color: #241348;
+  color: #fffdf5;
   font-family: var(--display-font);
   font-weight: 700;
   font-size: 13px;
@@ -1344,7 +1346,7 @@ function openApp(app: (typeof pinned)[number]) {
 
 .start-foot :deep(.v-btn) {
   margin-inline-start: auto;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text);
 }
 
 /* --------------------------------- 窄屏回退 -------------------------------- */
