@@ -25,10 +25,12 @@
   --blur: 24px;
   --radius: 20px;
 
-  --display-font: 'Baloo 2', 'ZCOOL QingKe HuangYou', 'PingFang SC', 'Microsoft YaHei',
-    system-ui, sans-serif;
-  --body-font: 'Nunito', 'ZCOOL QingKe HuangYou', 'PingFang SC', 'Microsoft YaHei', system-ui,
-    sans-serif;
+  /* 任务栏：距底边位置与隐藏后露出的高度（CSS 与脚本共用同一份来源） */
+  --taskbar-bottom: 18px;
+  --taskbar-sliver: 10px;
+
+  --display-font: 'Outfit', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --body-font: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 }
 
 *,
@@ -46,7 +48,7 @@ body,
 body {
   margin: 0;
   font-family: var(--body-font);
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text);
   background: linear-gradient(135deg, var(--bg-a) 0%, var(--bg-m) 46%, var(--bg-b) 100%) fixed;
   -webkit-font-smoothing: antialiased;
@@ -146,7 +148,7 @@ body {
 .v-btn {
   text-transform: none;
   letter-spacing: 0.1px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* ------------------------------ 无障碍动效 ------------------------------ */

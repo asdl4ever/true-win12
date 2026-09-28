@@ -136,6 +136,97 @@ function winBindings(panel: PanelId) {
   }
 }
 
+/* -------------------------------- 任务栏收起 ------------------------------- */
+
+/* 位移小于这个值算点击，不抢按钮的事件 */
+const TASKBAR_DRAG_THRESHOLD = 6
+
+const taskbarEl = ref<HTMLElement | null>(null)
+const barHidden = ref(false)
+const barDragging = ref(false)
+const barOffset = ref(0)
+let barStartY = 0
+let barStartOffset = 0
+let barHideDistance = 0
+
+const barStyle = computed(() =>
+  barDragging.value
+    ? { transform: `translateX(-50%) translateY(${barOffset.value}px)` }
+    : undefined,
+)
+
+/* 收起行程 = 栏高 + 距底边距离 − 保留露出的一小截 */
+function measureBarDistance() {
+  const el = taskbarEl.value
+  if (!el) return 60
+  const styles = getComputedStyle(el)
+  const bottom = Number.parseFloat(styles.getPropertyValue('--taskbar-bottom')) || 0
+  const sliver = Number.parseFloat(styles.getPropertyValue('--taskbar-sliver')) || 10
+  return el.offsetHeight + bottom - sliver
+}
+
+/* 拖过之后的那次 click 要拦掉，否则松手会顺手触发被拖到的按钮 */
+function swallowClick(event: Event) {
+  event.stopPropagation()
+  event.preventDefault()
+  document.removeEventListener('click', swallowClick, true)
+}
+
+function unbindBarDrag() {
+  document.removeEventListener('pointermove', moveBarDrag)
+  document.removeEventListener('pointerup', endBarDrag)
+  document.removeEventListener('pointercancel', endBarDrag)
+}
+
+function startBarDrag(event: PointerEvent) {
+  if (event.button !== 0 || window.matchMedia('(max-width: 1000px)').matches) return
+  unbindBarDrag()
+  document.removeEventListener('click', swallowClick, true)
+  barHideDistance = measureBarDistance()
+  barStartY = event.clientY
+  barStartOffset = barHidden.value ? barHideDistance : 0
+  barDragging.value = false
+  document.addEventListener('pointermove', moveBarDrag)
+  document.addEventListener('pointerup', endBarDrag)
+  document.addEventListener('pointercancel', endBarDrag)
+}
+
+function moveBarDrag(event: PointerEvent) {
+  const dy = event.clientY - barStartY
+  if (!barDragging.value) {
+    if (Math.abs(dy) < TASKBAR_DRAG_THRESHOLD) return
+    barDragging.value = true
+    barHidden.value = false
+    startOpen.value = false
+  }
+  /* 只认向下拖，向上最多回到原位 */
+  barOffset.value = Math.min(Math.max(barStartOffset + dy, 0), barHideDistance)
+}
+
+function endBarDrag() {
+  unbindBarDrag()
+  if (!barDragging.value) return
+  barDragging.value = false
+  document.addEventListener('click', swallowClick, true)
+  /* 拖过行程一半就收起，否则弹回原位 */
+  barHidden.value = barOffset.value >= barHideDistance / 2
+  barOffset.value = 0
+}
+
+function onBarClick() {
+  if (barHidden.value) {
+    barHidden.value = false
+    return
+  }
+  startOpen.value = false
+}
+
+function onBarKey(event: KeyboardEvent) {
+  if (!barHidden.value || (event.key !== 'Enter' && event.key !== ' ')) return
+  event.preventDefault()
+  barHidden.value = false
+}
+
 /* ---------------------------------- 反馈 ---------------------------------- */
 
 const toast = ref(false)
@@ -171,6 +262,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.clearInterval(clockTimer)
   window.clearInterval(mediaTimer)
+  unbindBarDrag()
+  document.removeEventListener('click', swallowClick, true)
 })
 
 /* ------------------------------ 外观实时参数 ------------------------------ */
@@ -504,7 +597,17 @@ function openApp(app: (typeof pinned)[number]) {
       </section>
     </main>
 
-    <footer class="taskbar glass glass-dense" @click="startOpen = false">
+    <footer
+      ref="taskbarEl"
+      class="taskbar glass glass-dense"
+      :class="{ 'is-hidden': barHidden, dragging: barDragging }"
+      :style="barStyle"
+      :tabindex="barHidden ? 0 : -1"
+      :aria-label="barHidden ? '任务栏已收起，点击或按回车展开' : undefined"
+      @click="onBarClick"
+      @pointerdown="startBarDrag"
+      @keydown="onBarKey"
+    >
       <button
         class="tb-btn tb-start"
         type="button"
@@ -1107,26 +1210,63 @@ function openApp(app: (typeof pinned)[number]) {
 .taskbar {
   position: fixed;
   left: 50%;
-  bottom: 18px;
+  bottom: var(--taskbar-bottom);
   z-index: 80;
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 7px 10px;
   border-radius: var(--radius);
+  transform: translateX(-50%);
+  user-select: none;
+  transition: transform 0.34s cubic-bezier(0.22, 0.8, 0.24, 1);
   animation: rise-bar 0.85s cubic-bezier(0.16, 0.84, 0.28, 1) both;
   animation-delay: 0.52s;
 }
 
+/* 入场只动 translate，把 transform 留给拖拽与收起 */
 @keyframes rise-bar {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(24px);
+    translate: 0 24px;
   }
   to {
     opacity: 1;
-    transform: translateX(-50%);
+    translate: 0 0;
   }
+}
+
+/* 向下拖拽中要跟手，不要过渡 */
+.taskbar.dragging {
+  transition: none;
+}
+
+/* 收起：只留底部一小截，鼠标移上去再抬一点作为可点击的提示 */
+.taskbar.is-hidden {
+  transform: translateX(-50%) translateY(calc(100% + var(--taskbar-bottom) - var(--taskbar-sliver)));
+  cursor: pointer;
+}
+
+.taskbar.is-hidden > * {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.taskbar.is-hidden:hover {
+  transform: translateX(-50%)
+    translateY(calc(100% + var(--taskbar-bottom) - var(--taskbar-sliver) - 8px));
+}
+
+.taskbar.is-hidden::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--ink-line);
 }
 
 .tb-btn {
@@ -1387,6 +1527,11 @@ function openApp(app: (typeof pinned)[number]) {
   .tb-search span,
   .tb-clock em {
     display: none;
+  }
+
+  /* 窄屏不支持拖拽收起，避免出现收不回来的状态 */
+  .taskbar.is-hidden {
+    transform: translateX(-50%);
   }
 
   .tb-tray :deep(.v-icon) {
