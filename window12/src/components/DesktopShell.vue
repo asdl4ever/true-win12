@@ -701,8 +701,8 @@ function openApp(app: (typeof pinned)[number]) {
         </ul>
 
         <div class="start-foot">
-          <span class="avatar">陈</span>
-          <span class="who">陈默</span>
+          <span class="avatar">奶</span>
+          <span class="who">奶龙</span>
           <v-btn
             icon="mdi-power"
             variant="text"
@@ -714,7 +714,13 @@ function openApp(app: (typeof pinned)[number]) {
       </section>
     </transition>
 
-    <v-snackbar v-model="toast" :timeout="1900" location="bottom" color="rgba(61, 43, 14, 0.92)">
+    <v-snackbar
+      v-model="toast"
+      class="toast"
+      :timeout="1900"
+      location="top right"
+      color="rgba(61, 43, 14, 0.92)"
+    >
       {{ toastText }}
     </v-snackbar>
   </v-app>
@@ -818,20 +824,7 @@ function openApp(app: (typeof pinned)[number]) {
   }
 }
 
-.win > .glass-window {
-  transition:
-    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 0.45s ease;
-}
-
-@media (min-width: 1001px) and (hover: hover) {
-  .win:hover > .glass-window {
-    transform: scale(1.05);
-    box-shadow:
-      0 32px 72px rgba(140, 100, 30, 0.34),
-      inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  }
-}
+/* 卡片不随 hover 放大、也不改阴影：点按钮或拖拽时位置不会跳 */
 
 /* 三张卡片斜向叠压：只让边缘互相压住，避免遮住正文 */
 .win-explorer {
@@ -857,17 +850,9 @@ function openApp(app: (typeof pinned)[number]) {
   --d: 0.34s;
 }
 
-/* 拖动中的卡片：贴着指针跟随，同时保持"被抬起"的观感 */
+/* 拖动中的卡片：贴指针跟随，不做放大与阴影变化 */
 .win.dragging {
   transition: none;
-}
-
-.win.dragging > .glass-window {
-  transition: none;
-  transform: scale(1.02);
-  box-shadow:
-    0 34px 74px rgba(140, 100, 30, 0.36),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 /* ------------------------------ 资源管理器内部 ----------------------------- */

@@ -122,6 +122,19 @@ body {
   cursor: grabbing;
 }
 
+/* 右上角的消息提示：字体、圆角与阴影跟页面保持一套 */
+.v-snackbar__wrapper {
+  border-radius: 14px;
+  font-family: var(--body-font);
+  color: #fffdf5;
+  box-shadow: 0 14px 30px rgba(133, 96, 26, 0.28);
+}
+
+.v-snackbar__content {
+  font-family: var(--body-font);
+  font-weight: 500;
+}
+
 /* ------------------------------ Vuetify 对齐 ------------------------------ */
 
 .v-application {
