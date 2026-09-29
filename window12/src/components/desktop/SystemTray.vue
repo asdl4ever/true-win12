@@ -62,35 +62,46 @@ const { time, shortDate } = useClock()
 
 .tray-clock strong {
   font-family: var(--display-font);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: var(--fs-subtitle);
+  font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
 }
 
 .tray-clock em {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--fs-micro);
   color: var(--text-muted);
 }
 
 .tray-bell {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: var(--glass-thin);
   color: inherit;
-  opacity: 0.78;
+  opacity: 0.82;
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    opacity 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    opacity var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .tray-bell:hover {
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--glass-solid);
+  border-color: var(--glass-edge-strong);
+  box-shadow: var(--shadow-1);
   opacity: 1;
+  transform: scale(1.08);
+}
+
+.tray-bell:active {
+  transform: scale(0.92);
+  transition-duration: var(--dur-1);
 }
 </style>

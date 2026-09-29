@@ -86,16 +86,16 @@ onKeyStroke('Escape', () => {
 </template>
 
 <style scoped>
-/* 桌面之上压一层暖调磨砂，任务栏（z-index 80）仍在它上面，方便再点一次收起 */
+/* 桌面之上压一层冷调磨砂，任务栏（z-index 80）仍在它上面，方便再点一次收起 */
 .task-view {
   position: fixed;
   inset: 0;
   z-index: 75;
   padding: 34px 40px 130px;
   overflow: auto;
-  background: rgba(94, 66, 20, 0.3);
-  backdrop-filter: blur(20px) saturate(120%);
-  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  background: var(--scrim);
+  backdrop-filter: blur(var(--blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(140%);
 }
 
 .tv-inner {
@@ -110,15 +110,15 @@ onKeyStroke('Escape', () => {
 .tv-title {
   margin: 0 0 6px;
   font-family: var(--display-font);
-  font-size: 21px;
-  font-weight: 700;
+  font-size: var(--fs-display);
+  font-weight: var(--fw-bold);
   color: var(--text);
 }
 
 .tv-hint {
   margin: 0;
-  font-size: 12.5px;
-  color: rgba(61, 43, 14, 0.75);
+  font-size: var(--fs-label);
+  color: var(--text-muted);
 }
 
 .tv-section {
@@ -127,18 +127,18 @@ onKeyStroke('Escape', () => {
   gap: 8px;
   margin: 0 0 12px;
   font-family: var(--display-font);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--fs-subtitle);
+  font-weight: var(--fw-bold);
   color: var(--text);
 }
 
 .tv-count {
   padding: 1px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.62);
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(61, 43, 14, 0.8);
+  border-radius: var(--r-pill);
+  background: var(--glass-solid);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semi);
+  color: var(--text-muted);
 }
 
 .tv-big {
@@ -156,9 +156,9 @@ onKeyStroke('Escape', () => {
   min-height: 172px;
   padding: 20px 18px 16px;
   cursor: pointer;
-  animation: tv-rise 0.5s cubic-bezier(0.16, 0.84, 0.28, 1) both;
+  animation: jelly-rise var(--dur-5) var(--spring-out) both;
   animation-delay: var(--d, 0s);
-  transition: border-color 0.2s ease;
+  transition: border-color var(--dur-2) var(--spring-settle);
 }
 
 .tv-card:hover,
@@ -175,15 +175,15 @@ onKeyStroke('Escape', () => {
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.75);
+  border-radius: var(--r-control);
+  background: var(--glass-solid);
   color: var(--text);
   opacity: 0;
   cursor: pointer;
   transition:
-    opacity 0.18s ease,
-    background 0.18s ease,
-    color 0.18s ease;
+    opacity var(--dur-2) var(--spring-settle),
+    background-color var(--dur-2) var(--spring-settle),
+    color var(--dur-2) var(--spring-settle);
 }
 
 .tv-card:hover .tv-close,
@@ -192,8 +192,8 @@ onKeyStroke('Escape', () => {
 }
 
 .tv-close:hover {
-  background: #e81123;
-  color: #fff;
+  background: var(--danger);
+  color: var(--on-danger);
 }
 
 .tv-icon {
@@ -201,16 +201,16 @@ onKeyStroke('Escape', () => {
   place-items: center;
   width: 46px;
   height: 46px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--accent) 16%, rgba(255, 255, 255, 0.62));
-  color: var(--accent);
+  border-radius: var(--r-control);
+  background: color-mix(in srgb, var(--accent) 16%, var(--glass-base));
+  color: var(--accent-deep);
 }
 
 .tv-card-title {
   margin: 0;
   font-family: var(--display-font);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--fs-subtitle);
+  font-weight: var(--fw-bold);
   color: var(--text);
 }
 
@@ -219,7 +219,7 @@ onKeyStroke('Escape', () => {
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
@@ -232,25 +232,16 @@ onKeyStroke('Escape', () => {
 
 .tv-empty {
   margin: 4px 0 0;
-  font-size: 12.5px;
-  color: rgba(61, 43, 14, 0.72);
+  font-size: var(--fs-label);
+  color: var(--text-muted);
 }
 
-@keyframes tv-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* 整层淡入淡出 */
+/* 整层淡入淡出；过渡期间摘掉全屏模糊，避免逐帧重采样 */
 .tv-enter-active,
 .tv-leave-active {
-  transition: opacity 0.24s ease;
+  transition: opacity var(--dur-3) var(--spring-settle);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .tv-enter-from,

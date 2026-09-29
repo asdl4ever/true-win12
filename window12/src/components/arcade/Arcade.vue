@@ -62,32 +62,38 @@ const current = computed(
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  border: 1px solid rgba(61, 43, 14, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-pill);
+  background: var(--glass-thin);
   color: var(--text-muted);
   font-family: var(--body-font);
-  font-size: 12px;
+  font-size: var(--fs-caption);
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .arcade-tab:hover {
   color: var(--text);
 }
 
+.arcade-tab:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
+}
+
 .arcade-tab.on {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 18%, rgba(255, 255, 255, 0.6));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--glass-edge));
+  background: color-mix(in srgb, var(--accent) 18%, var(--glass-base));
   color: var(--text);
 }
 
 .arcade-empty {
   margin: 18px 4px;
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   color: var(--text-muted);
   text-align: center;
 }

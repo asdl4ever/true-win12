@@ -25,7 +25,7 @@ function openIcon(icon: DesktopIcon) {
         <button
           v-for="icon in desktopIcons"
           :key="icon.id"
-          class="desk-icon"
+          class="desk-icon glass-thin"
           :class="{ selected: selected === icon.id }"
           type="button"
           @click.stop="selected = icon.id"
@@ -48,68 +48,54 @@ function openIcon(icon: DesktopIcon) {
 
 
 
-/* 透明玻璃图标块。
-   浅色壁纸上想看出"玻璃"，靠的不是底子有多白，而是三件事：
-   ① 底子几乎透明（10% 白），壁纸要透得出来；
-   ② 135° 一道反光 + 内圈高光边，模拟玻璃厚度；
-   ③ 背景轻微提饱和提亮——透过玻璃的那块壁纸会更"润"，这是玻璃的观感来源。
-   圆角与模糊仍跟着 --radius / --blur 走，设置面板里的滑杆对它同样生效。 */
+/* 桌面图标：M1 薄雾玻璃块（.glass-thin 提供背景、模糊、边框、内发光）。
+   圆角用 --r-card 而不是 M1 默认的 --r-inner——图标块面积较大，太小的圆角会显得方。
+   模糊仍跟着 --blur 走，设置面板里的滑杆对它同样生效。 */
 .desk-icon {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 10px 4px 8px;
-  background-color: rgba(255, 255, 255, 0.1);
-  background-image: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.32),
-    rgba(255, 255, 255, 0.05) 44%,
-    rgba(255, 255, 255, 0) 74%
-  );
-  backdrop-filter: blur(calc(var(--blur) * 0.45)) saturate(180%) brightness(1.04);
-  -webkit-backdrop-filter: blur(calc(var(--blur) * 0.45)) saturate(180%) brightness(1.04);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: calc(var(--radius) - 4px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.16),
-    inset 1px 0 0 rgba(255, 255, 255, 0.3),
-    inset -1px 0 0 rgba(255, 255, 255, 0.2),
-    0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: var(--sp-3) var(--sp-1) var(--sp-2);
+  border-radius: var(--r-card);
   color: var(--text);
   font-family: var(--body-font);
-  font-size: 11px;
+  font-size: var(--fs-caption);
   line-height: 1.2;
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
+/* hover-lift / press-squash */
 .desk-icon:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.46);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.2),
-    inset 1px 0 0 rgba(255, 255, 255, 0.38),
-    inset -1px 0 0 rgba(255, 255, 255, 0.24),
-    0 10px 36px rgba(0, 0, 0, 0.14);
+  transform: translateY(-2px) scale(1.05);
 }
 
-/* 选中：底子稍实一点，外圈补一道强调色环 */
+.desk-icon:active {
+  transform: scale(0.95);
+  transition-duration: var(--dur-1);
+}
+
+/* 悬浮时图标本身轻微放大，给出"能点开"的即时反馈 */
+.desk-icon :deep(.v-icon) {
+  transition: transform var(--dur-3) var(--spring-jelly);
+}
+
+.desk-icon:hover :deep(.v-icon) {
+  transform: scale(1.2);
+}
+
+/* 选中：底子叠一层强调色，外圈补一道高光圈 */
 .desk-icon.selected {
-  background-color: rgba(255, 255, 255, 0.34);
-  border-color: rgba(255, 255, 255, 0.66);
+  background-color: color-mix(in srgb, var(--accent) 16%, var(--glass-base));
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--glass-edge));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -1px 1px rgba(255, 255, 255, 0.24),
-    inset 1px 0 0 rgba(255, 255, 255, 0.44),
-    inset -1px 0 0 rgba(255, 255, 255, 0.3),
-    0 12px 40px rgba(0, 0, 0, 0.16),
-    0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+    var(--shadow-1),
+    0 0 0 2px var(--glass-edge-strong);
 }
 
 /* 窄屏：图标栏改成横向排一行 */

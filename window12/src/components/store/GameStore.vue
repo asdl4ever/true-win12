@@ -147,8 +147,8 @@ function pickTab(id: TabId) {
                   :model-value="progressOf(game.id)"
                   height="5"
                   rounded
-                  color="#3d2b0e"
-                  bg-color="rgba(61, 43, 14, 0.16)"
+                  color="var(--accent)"
+                  bg-color="var(--ink-100)"
                 />
                 <span class="store-pct">{{ progressOf(game.id) }}%</span>
               </template>
@@ -241,8 +241,8 @@ function pickTab(id: TabId) {
                 :model-value="progressOf(game.id)"
                 height="5"
                 rounded
-                color="#3d2b0e"
-                bg-color="rgba(61, 43, 14, 0.16)"
+                color="var(--accent)"
+                bg-color="var(--ink-100)"
               />
               <span class="store-pct">{{ progressOf(game.id) }}%</span>
             </template>
@@ -304,7 +304,7 @@ function pickTab(id: TabId) {
   display: flex;
   align-items: center;
   gap: 9px;
-  transition: flex-basis 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: flex-basis var(--dur-4) var(--spring-jelly);
 }
 
 .store-top.searching .store-account {
@@ -318,13 +318,13 @@ function pickTab(id: TabId) {
   width: 32px;
   height: 32px;
   overflow: hidden;
-  border: 1px solid var(--ink-line);
+  border: 1px solid var(--glass-edge);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--glass-solid);
   color: var(--text);
   font-family: var(--display-font);
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-body);
 }
 
 .store-avatar img {
@@ -334,13 +334,13 @@ function pickTab(id: TabId) {
 }
 
 .store-who {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semi);
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: opacity 0.24s ease;
+  transition: opacity var(--dur-3) var(--spring-settle);
 }
 
 .store-top.searching .store-who {
@@ -363,16 +363,23 @@ function pickTab(id: TabId) {
   height: 34px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(61, 43, 14, 0.14);
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-control);
+  background: var(--glass-thin);
   color: var(--text);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .store-tool:hover {
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--glass-solid);
+}
+
+.store-tool:active {
+  transform: scale(0.92);
+  transition-duration: var(--dur-1);
 }
 
 /* 左侧栏 */
@@ -392,33 +399,33 @@ function pickTab(id: TabId) {
   gap: 9px;
   padding: 8px 10px;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: var(--r-control);
   background: transparent;
   color: var(--text-muted);
   font-family: var(--body-font);
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   text-align: start;
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle);
 }
 
 .store-tab:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--glass-thin);
   color: var(--text);
 }
 
 .store-tab.on {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  background: color-mix(in srgb, var(--accent) 16%, rgba(255, 255, 255, 0.55));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--glass-edge));
+  background: color-mix(in srgb, var(--accent) 16%, var(--glass-base));
   color: var(--text);
 }
 
 .store-side-note {
   margin: auto 2px 0;
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
@@ -439,32 +446,38 @@ function pickTab(id: TabId) {
 
 .store-cat {
   padding: 4px 11px;
-  border: 1px solid rgba(61, 43, 14, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-pill);
+  background: var(--glass-thin);
   color: var(--text-muted);
   font-family: var(--body-font);
-  font-size: 11.5px;
+  font-size: var(--fs-caption);
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .store-cat:hover {
   color: var(--text);
 }
 
+.store-cat:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
+}
+
 .store-cat.on {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 18%, rgba(255, 255, 255, 0.6));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--glass-edge));
+  background: color-mix(in srgb, var(--accent) 18%, var(--glass-base));
   color: var(--text);
 }
 
 .store-sum {
   margin: 0 0 10px;
-  font-size: 12px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
@@ -486,8 +499,8 @@ function pickTab(id: TabId) {
   gap: 11px;
   padding: 11px 11px 10px;
   border: 1px solid var(--ink-line);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.45);
+  border-radius: var(--r-card);
+  background: var(--glass-thin);
 }
 
 .store-icon {
@@ -496,9 +509,9 @@ function pickTab(id: TabId) {
   place-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 13px;
-  background: color-mix(in srgb, var(--accent) 16%, rgba(255, 255, 255, 0.65));
-  color: var(--accent);
+  border-radius: var(--r-control);
+  background: color-mix(in srgb, var(--accent) 16%, var(--glass-base));
+  color: var(--accent-deep);
 }
 
 .store-meta {
@@ -509,20 +522,20 @@ function pickTab(id: TabId) {
 .store-name {
   margin: 0 0 2px;
   font-family: var(--display-font);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: var(--fs-subtitle);
+  font-weight: var(--fw-bold);
   color: var(--text);
 }
 
 .store-sub {
   margin: 0 0 4px;
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
 .store-desc {
   margin: 0 0 5px;
-  font-size: 11.5px;
+  font-size: var(--fs-caption);
   line-height: 1.5;
   color: var(--text-muted);
 }
@@ -532,7 +545,7 @@ function pickTab(id: TabId) {
   align-items: center;
   gap: 4px;
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
@@ -542,9 +555,9 @@ function pickTab(id: TabId) {
   gap: 3px;
   margin-inline-start: 6px;
   padding: 1px 7px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--accent) 16%, var(--glass-base));
+  color: var(--accent-deep);
 }
 
 .store-action {
@@ -557,7 +570,19 @@ function pickTab(id: TabId) {
 
 .store-get {
   background: var(--accent);
-  color: #fffdf5;
+  color: var(--accent-contrast);
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
+}
+
+.store-get:hover {
+  background: var(--accent-deep);
+}
+
+.store-get:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
 }
 
 .store-del {
@@ -565,7 +590,7 @@ function pickTab(id: TabId) {
 }
 
 .store-pct {
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
   text-align: center;
 }
@@ -596,7 +621,7 @@ function pickTab(id: TabId) {
 
 .store-empty {
   margin: 10px 2px;
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   color: var(--text-muted);
 }
 
@@ -605,10 +630,10 @@ function pickTab(id: TabId) {
   position: absolute;
   inset: 0;
   z-index: 2;
-  border-radius: calc(var(--radius) - 4px);
-  background: rgba(255, 253, 245, 0.42);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
+  border-radius: var(--r-card);
+  background: var(--glass-solid);
+  backdrop-filter: blur(calc(var(--blur) * 0.35)) saturate(140%);
+  -webkit-backdrop-filter: blur(calc(var(--blur) * 0.35)) saturate(140%);
   cursor: pointer;
 }
 
@@ -636,9 +661,9 @@ function pickTab(id: TabId) {
   gap: 11px;
   padding: 11px 11px 10px;
   border: 1px solid var(--ink-line);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
-  animation: hit-in 0.2s ease both;
+  border-radius: var(--r-card);
+  background: var(--glass-base);
+  animation: hit-in var(--dur-3) var(--spring-out) both;
 }
 
 @keyframes hit-in {

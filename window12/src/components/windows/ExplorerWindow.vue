@@ -46,7 +46,7 @@ const visibleFiles = computed(() => files.filter((file) => file.name.includes(qu
                     hide-details
                     variant="solo"
                     flat
-                    bg-color="rgba(255, 255, 255, 0.55)"
+                    bg-color="transparent"
                     placeholder="搜索文件与文件夹"
                     prepend-inner-icon="mdi-magnify"
                   />
@@ -94,26 +94,28 @@ const visibleFiles = computed(() => files.filter((file) => file.name.includes(qu
   align-items: center;
   gap: 9px;
   padding: 7px 10px;
-  border: 0;
-  border-radius: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
   background: transparent;
   color: var(--text);
   font-family: var(--body-font);
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   text-align: start;
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    color 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle),
+    color var(--dur-2) var(--spring-settle);
 }
 
 .ex-place:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--glass-thin);
   color: var(--text);
 }
 
 .ex-place.on {
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--accent) 14%, var(--glass-base));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--glass-edge));
   color: var(--text);
 }
 
@@ -135,29 +137,6 @@ const visibleFiles = computed(() => files.filter((file) => file.name.includes(qu
   color: var(--text);
 }
 
-.glass-field :deep(.v-field) {
-  border-radius: 12px;
-  font-size: 13px;
-}
-
-.glass-field :deep(.v-field__prepend-inner .v-icon) {
-  color: var(--text-muted);
-  opacity: 1;
-}
-
-.glass-field :deep(.v-field__input) {
-  color: var(--text);
-  font-size: 13px;
-  min-height: 34px;
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-
-.glass-field :deep(input::placeholder) {
-  color: var(--text-muted);
-  opacity: 1;
-}
-
 .ex-grid {
   flex: 1 1 auto;
   min-height: 0;
@@ -168,48 +147,56 @@ const visibleFiles = computed(() => files.filter((file) => file.name.includes(qu
   padding: 4px 12px 14px;
 }
 
+/* 文件格：M1 薄雾底 + hover-lift / press-squash */
 .file {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 3px;
   padding: 12px 12px 11px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-card);
+  background: var(--glass-thin);
   color: var(--text);
   font-family: var(--body-font);
   text-align: start;
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .file:hover {
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--glass-base);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.file:active {
+  transform: scale(0.97);
+  transition-duration: var(--dur-1);
 }
 
 .file.on {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--glass-base));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--glass-edge));
 }
 
 .file-name {
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
   word-break: break-all;
 }
 
 .file-meta {
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
 .empty {
   grid-column: 1 / -1;
   margin: 12px 2px;
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   color: var(--text-muted);
 }
 

@@ -12,7 +12,7 @@ const { restorePanel, toggleTaskView } = desktop
 
 <template>
   <Transition name="rail">
-    <aside v-if="dockedPanels.length" class="dock glass glass-dense" aria-label="右侧任务栏">
+    <aside v-if="dockedPanels.length" class="dock glass-dense" aria-label="右侧任务栏">
       <button
         class="dock-item dock-task"
         :class="{ running: taskViewOpen }"
@@ -46,6 +46,7 @@ const { restorePanel, toggleTaskView } = desktop
 <style scoped>
 /* ------------------------------ 桌面右侧的任务栏 ----------------------------- */
 
+/* M3 厚玻璃，材质与圆角全部交给 .glass-dense —— 设置里的滑块对它同样生效 */
 .dock {
   position: fixed;
   right: 16px;
@@ -58,7 +59,6 @@ const { restorePanel, toggleTaskView } = desktop
   align-items: center;
   gap: 6px;
   padding: 8px 7px;
-  border-radius: calc(var(--radius) - 2px);
 }
 
 .dock-items {
@@ -73,46 +73,57 @@ const { restorePanel, toggleTaskView } = desktop
   height: 38px;
   display: grid;
   place-items: center;
-  border: 1px solid transparent;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--glass-edge);
+  border-radius: 50%;
+  background: var(--glass-thin);
   color: var(--text);
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
+/* hover-lift：向左抬起（这条栏贴在右边） */
 .dock-item:hover {
-  border-color: var(--ink-line);
-  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--glass-edge-strong);
+  background: var(--glass-solid);
+  box-shadow: var(--shadow-1);
+  transform: translateX(-3px) scale(1.08);
 }
 
-/* 任务视图开着时给个强调色短横，和任务栏图标一致 */
+.dock-item:active {
+  transform: scale(0.92);
+  transition-duration: var(--dur-1);
+}
+
+/* 任务视图开着时给个强调色圆点，和任务栏图标一致 */
 .dock-item.running::after {
   content: '';
   position: absolute;
-  bottom: 3px;
+  bottom: 4px;
   left: 50%;
-  width: 12px;
-  height: 3px;
-  border-radius: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
   background: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
   translate: -50% 0;
 }
 
 .dock-sep {
   width: 22px;
   height: 1px;
-  background: var(--ink-line);
+  background: var(--ink-200);
 }
 
 /* 整条栏出现 / 消失 */
 .rail-enter-active,
 .rail-leave-active {
   transition:
-    opacity 0.2s ease,
-    transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity var(--dur-3) var(--spring-out),
+    transform var(--dur-3) var(--spring-jelly);
 }
 
 .rail-enter-from,
@@ -124,14 +135,14 @@ const { restorePanel, toggleTaskView } = desktop
 /* 收到右侧的图标：淡入 + 从左滑入 */
 .dock-enter-active {
   transition:
-    opacity 0.22s ease,
-    transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity var(--dur-3) var(--spring-out),
+    transform var(--dur-3) var(--spring-jelly);
 }
 
 .dock-leave-active {
   transition:
-    opacity 0.16s ease,
-    transform 0.18s ease;
+    opacity var(--dur-2) var(--spring-out),
+    transform var(--dur-2) var(--spring-settle);
 }
 
 .dock-enter-from,

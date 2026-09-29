@@ -133,12 +133,11 @@ function onKey(event: KeyboardEvent) {
 }
 
 function tileStyle(value: number) {
-  if (!value) return { background: 'rgba(61, 43, 14, 0.07)' }
+  if (!value) return { background: 'var(--ink-100)' }
   const step = Math.log2(value)
   return {
-    background: `color-mix(in srgb, var(--accent) ${Math.min(14 + step * 7, 80)}%, rgba(255, 255, 255, 0.86))`,
-    color: step >= 7 ? '#fffdf5' : 'var(--text)',
-    fontSize: value >= 1000 ? '17px' : '21px',
+    background: `color-mix(in srgb, var(--accent) ${Math.min(14 + step * 7, 80)}%, var(--glass-solid))`,
+    color: step >= 7 ? 'var(--accent-contrast)' : 'var(--text)',
   }
 }
 
@@ -155,7 +154,13 @@ onMounted(start)
 
     <div class="g-stage">
       <div class="g-grid">
-        <div v-for="(value, index) in board" :key="index" class="g-cell" :style="tileStyle(value)">
+        <div
+          v-for="(value, index) in board"
+          :key="index"
+          class="g-cell"
+          :class="{ small: value >= 1000 }"
+          :style="tileStyle(value)"
+        >
           {{ value || '' }}
         </div>
       </div>
@@ -184,15 +189,16 @@ onMounted(start)
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   color: var(--text-muted);
 }
 
 .g-score {
   font-family: var(--display-font);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-bold);
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .g-btn {
@@ -202,7 +208,19 @@ onMounted(start)
 
 .g-btn.primary {
   background: var(--accent);
-  color: #fffdf5;
+  color: var(--accent-contrast);
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
+}
+
+.g-btn.primary:hover {
+  background: var(--accent-deep);
+}
+
+.g-btn.primary:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
 }
 
 .g-stage {
@@ -214,21 +232,27 @@ onMounted(start)
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   padding: 8px;
-  border-radius: 16px;
-  background: rgba(61, 43, 14, 0.08);
+  border-radius: var(--r-card);
+  background: var(--ink-100);
 }
 
 .g-cell {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--r-inner);
   font-family: var(--display-font);
-  font-weight: 700;
-  font-size: 21px;
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-display);
+  font-variant-numeric: tabular-nums;
   transition:
-    background 0.15s ease,
-    color 0.15s ease;
+    background-color var(--dur-1) var(--spring-settle),
+    color var(--dur-1) var(--spring-settle);
+}
+
+/* 四位数收一号，避免撑破格子 */
+.g-cell.small {
+  font-size: var(--fs-subtitle);
 }
 
 .g-mask {
@@ -239,20 +263,20 @@ onMounted(start)
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border-radius: 16px;
-  background: rgba(255, 253, 245, 0.86);
+  border-radius: var(--r-card);
+  background: var(--glass-solid);
   color: var(--text);
   text-align: center;
 }
 
 .g-mask p {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--fs-label);
 }
 
 .g-note {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
   text-align: center;
 }

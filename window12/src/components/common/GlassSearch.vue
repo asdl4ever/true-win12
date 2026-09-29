@@ -40,7 +40,7 @@ function closeSearch() {
       hide-details
       variant="solo"
       flat
-      bg-color="rgba(255, 255, 255, 0.55)"
+      bg-color="transparent"
       :placeholder="placeholder"
       prepend-inner-icon="mdi-magnify"
       @update:model-value="emit('update:modelValue', $event)"
@@ -67,8 +67,8 @@ function closeSearch() {
   position: relative;
   max-width: 100%;
   transition:
-    flex-basis 0.32s cubic-bezier(0.2, 0.8, 0.2, 1),
-    width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+    flex-basis var(--dur-4) var(--spring-jelly),
+    width var(--dur-4) var(--spring-jelly);
 }
 
 .glass-search-clear {
@@ -82,13 +82,16 @@ function closeSearch() {
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: rgba(61, 43, 14, 0.14);
+  background: var(--ink-100);
   color: var(--text);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .glass-search-clear:hover {
-  background: rgba(61, 43, 14, 0.24);
+  background: var(--ink-300);
+  transform: translateY(-50%) scale(1.1);
 }
 </style>

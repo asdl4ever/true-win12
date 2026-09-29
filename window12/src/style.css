@@ -1,36 +1,140 @@
 /* ==========================================================================
-   奶黄玻璃桌面 · 全局令牌与共享外观
+   Window 12 · Spatial 奶黄液态玻璃
+   规范见 docs/DESIGN-SYSTEM.md
+   三层结构：Primitive（原始值）→ Semantic（语义）→ Component（组件）
+   组件一律通过 var() 引用，改这里就能整套换肤。
    ========================================================================== */
 
 :root {
-  /* 壁纸：奶油 → 奶黄 */
-  --bg-a: #fff4cd;
-  --bg-m: #f8dc9e;
-  --bg-b: #eebd5c;
+  color-scheme: light;
 
-  /* 玻璃：浅色壁纸上要更高透度才看得出"磨砂白" */
-  --glass: rgba(255, 255, 255, 0.46);
-  --glass-hover: rgba(255, 255, 255, 0.62);
-  /* 浅底上白描边会糊掉，改用极淡的暖色发丝线 */
-  --line: rgba(122, 86, 24, 0.22);
-  --glass-dense: rgba(255, 255, 255, 0.78);
+  /* ------------------------------ L1 Primitive ------------------------------ */
 
-  /* 文字：奶黄底上改用深可可，保证对比度 */
-  --text: #3d2b0e;
-  --text-muted: rgba(61, 43, 14, 0.62);
-  --ink-line: rgba(61, 43, 14, 0.16);
+  /* 奶黄色阶：以中国传统色「奶黄」#F9E4A5 为主色向两端展开 */
+  --cream-000: #fffdf6;
+  --cream-050: #fdf7e4;
+  --cream-100: #f9e4a5;
+  --cream-200: #f2d68c;
+  --cream-300: #e8c468;
+  --cream-400: #d8a93c;
 
-  /* 可被"设置"面板实时改写 */
-  --accent: #6d4ab8;
-  --blur: 24px;
-  --radius: 20px;
+  /* 墨色阶梯：文字与线条统一暖棕，禁止纯黑与冷灰 */
+  --ink-900: #3d2b0e;
+  --ink-700: #5c4519;
+  --ink-500: rgba(74, 56, 20, 0.62);
+  --ink-400: rgba(74, 56, 20, 0.42);
+  --ink-300: rgba(74, 56, 20, 0.26);
+  --ink-200: rgba(74, 56, 20, 0.16);
+  --ink-100: rgba(74, 56, 20, 0.1);
+  --ink-050: rgba(74, 56, 20, 0.06);
+
+  /* 奶白玻璃：带黄 tint，让奶黄透过玻璃 */
+  --glass-thin: rgba(255, 252, 242, 0.32);
+  --glass-base: rgba(255, 250, 236, 0.55);
+  --glass-thick: rgba(255, 248, 228, 0.74);
+  --glass-solid: rgba(255, 252, 244, 0.92);
+  --glass-edge: rgba(255, 255, 255, 0.72);
+  --glass-edge-strong: rgba(255, 255, 255, 0.88);
+
+  /* 环境柔光：空气感来源 */
+  --ambient-white: rgba(255, 255, 255, 0.9);
+  --ambient-gold: rgba(249, 228, 165, 0.75);
+  --ambient-warm: rgba(255, 208, 128, 0.5);
+
+  /* 暖调语义色 */
+  --tone-red: #d9564a;
+  --tone-green: #4e9a6a;
+  --tone-amber: #d99b1e;
+
+  /* 阴影基色：与奶黄环境同源，避免灰蓝发脏 */
+  --shade: 133, 96, 26;
+  --scrim-rgb: 74, 55, 16;
+
+  /* ------------------------------- L2 Semantic ------------------------------ */
+
+  --bg-a: var(--cream-050);
+  --bg-m: var(--cream-100);
+  --bg-b: var(--cream-200);
+
+  --text: var(--ink-900);
+  --text-muted: var(--ink-500);
+  --text-faint: var(--ink-400);
+  --line: var(--ink-200);
+  --line-soft: var(--ink-100);
+  --ink-line: var(--ink-200);
+
+  --danger: var(--tone-red);
+  --on-danger: #fff;
+  --success: var(--tone-green);
+  --warning: var(--tone-amber);
+
+  --shadow-1: 0 4px 14px -4px rgba(var(--shade), 0.16);
+  --shadow-2: 0 16px 40px -12px rgba(var(--shade), 0.26), 0 4px 14px -6px rgba(var(--shade), 0.16);
+  --shadow-3: 0 32px 80px -20px rgba(var(--shade), 0.34), 0 10px 28px -10px rgba(var(--shade), 0.2);
+
+  --scrim: rgba(var(--scrim-rgb), 0.28);
+
+  /* 形状：全部由 --radius 派生，拖动滑块全站同步 */
+  --r-inner: clamp(6px, calc(var(--radius) * 0.4), 12px);
+  --r-control: clamp(8px, calc(var(--radius) * 0.55), 16px);
+  --r-card: clamp(10px, calc(var(--radius) * 0.72), 20px);
+  --r-panel: var(--radius);
+  --r-screen: clamp(14px, calc(var(--radius) * 1.25), 34px);
+  --r-pill: 999px;
+
+  /* 间距：4pt 网格 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* 动效：四条曲线、五档时长 */
+  --spring-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring-jelly: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-loop: cubic-bezier(0.45, 0, 0.55, 1);
+
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 240ms;
+  --dur-4: 320ms;
+  --dur-5: 520ms;
+
+  /* 字体 */
+  --display-font: 'Fredoka', 'PingFang SC', 'Microsoft YaHei UI', system-ui, sans-serif;
+  --body-font: 'Nunito', 'PingFang SC', 'Microsoft YaHei UI', system-ui, sans-serif;
+
+  --fs-hero: clamp(46px, 8vw, 84px);
+  --fs-display: 21px;
+  --fs-title: 15px;
+  --fs-subtitle: 13.5px;
+  --fs-body: 13px;
+  --fs-label: 12.5px;
+  --fs-caption: 11.5px;
+  --fs-micro: 10.5px;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semi: 600;
+  --fw-bold: 700;
+
+  /* ------------------------------ Component -------------------------------- */
+
+  /* 可被"设置"面板实时改写（style.css 与 stores/desktop.ts 初值必须一致） */
+  --accent: #d99b1e;
+  --accent-deep: #b87f12;
+  --accent-contrast: #3d2b0e;
+  --blur: 28px;
+  --radius: 26px;
 
   /* 任务栏：距底边位置与隐藏后露出的高度（CSS 与脚本共用同一份来源） */
   --taskbar-bottom: 18px;
   --taskbar-sliver: 10px;
-
-  --display-font: 'Outfit', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --body-font: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 }
 
 *,
@@ -48,9 +152,10 @@ body,
 body {
   margin: 0;
   font-family: var(--body-font);
-  font-weight: 400;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-regular);
   color: var(--text);
-  background: linear-gradient(135deg, var(--bg-a) 0%, var(--bg-m) 46%, var(--bg-b) 100%) fixed;
+  background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-m) 48%, var(--bg-b) 100%) fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -62,8 +167,17 @@ body {
   }
 }
 
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--display-font);
+  font-weight: var(--fw-bold);
+  margin: 0;
+}
+
 :focus-visible {
-  outline: 2px solid rgba(61, 43, 14, 0.7);
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
   outline-offset: 2px;
 }
 
@@ -79,7 +193,7 @@ textarea:focus-visible {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(122, 88, 28, 0.34) transparent;
+  scrollbar-color: rgba(var(--shade), 0.28) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -88,31 +202,183 @@ textarea:focus-visible {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(122, 88, 28, 0.3);
+  background: rgba(var(--shade), 0.24);
   border-radius: 8px;
 }
 
-/* 共享玻璃质感：磨砂白卡面 / 1px 描边 / 顶端高光 */
+/* ==========================================================================
+   材质系统 · 液态玻璃四档
+   M1 薄雾 / M2 标准玻璃 / M3 厚玻璃 / M4 实心
+   四档的模糊值一律从 --blur 派生，设置里的"背景模糊"是全站唯一开关。
+   厚度、边缘高光、内雾全部用多层 inset 阴影表达——它们天然绘于内容之下，
+   不产生层叠与 z-index 问题，也少一层合成开销。
+   镜面反光烘焙进元素自身的 background-image，同样绘于内容之下。
+   ========================================================================== */
+
+.glass-thin,
+.glass,
+.glass-dense,
+.glass-solid {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--m-edge);
+  border-radius: var(--m-r);
+  background-color: var(--m-bg);
+  background-image:
+    radial-gradient(
+      150px 110px at var(--gx, 50%) var(--gy, -40%),
+      rgba(255, 255, 255, calc(0.55 * var(--gl, 0))),
+      transparent 70%
+    ),
+    var(--m-sheen);
+  backdrop-filter: blur(var(--m-blur)) saturate(var(--m-sat));
+  -webkit-backdrop-filter: blur(var(--m-blur)) saturate(var(--m-sat));
+  box-shadow: var(--m-shadow), var(--m-inset);
+}
+
+/* M1 · 薄雾 —— 图标底、chip、选中底、内嵌块 */
+.glass-thin {
+  --m-bg: var(--glass-thin);
+  --m-blur: calc(var(--blur) * 0.35);
+  --m-sat: 150%;
+  --m-edge: var(--glass-edge);
+  --m-r: var(--r-inner);
+  --m-shadow: var(--shadow-1);
+  --m-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08));
+  --m-inset:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 0 24px rgba(255, 255, 255, 0.12);
+}
+
+/* M2 · 标准玻璃 —— 窗口、卡片、搜索框 */
 .glass {
-  background: var(--glass);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.06) 46%);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  backdrop-filter: blur(var(--blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--blur)) saturate(160%);
-  box-shadow:
-    0 18px 44px rgba(133, 96, 26, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --m-bg: var(--glass-base);
+  --m-blur: var(--blur);
+  --m-sat: 180%;
+  --m-edge: var(--glass-edge);
+  --m-r: var(--r-panel);
+  --m-shadow: var(--shadow-2);
+  --m-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.14) 44%, rgba(255, 255, 255, 0.02));
+  --m-inset:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.42),
+    inset 1px 0 0 rgba(255, 255, 255, 0.5),
+    inset -1px 0 0 rgba(255, 255, 255, 0.5),
+    inset 0 -14px 26px -20px rgba(var(--shade), 0.3),
+    inset 0 0 44px rgba(255, 255, 255, 0.16);
 }
 
-/* 任务栏与开始菜单会压在卡片之上，用更实的白保证文字可读 */
+/* M3 · 厚玻璃 —— 任务栏、Dock、开始菜单、全屏面板 */
 .glass-dense {
-  background: var(--glass-dense);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.16));
-  border-color: rgba(122, 86, 24, 0.18);
+  --m-bg: var(--glass-thick);
+  --m-blur: calc(var(--blur) * 1.25);
+  --m-sat: 185%;
+  --m-edge: var(--glass-edge-strong);
+  --m-r: var(--r-screen);
+  --m-shadow: var(--shadow-3);
+  --m-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.2) 46%, rgba(255, 255, 255, 0.04));
+  --m-inset:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5),
+    inset 1px 0 0 rgba(255, 255, 255, 0.6),
+    inset -1px 0 0 rgba(255, 255, 255, 0.6),
+    inset 0 -16px 30px -22px rgba(var(--shade), 0.34),
+    inset 0 0 52px rgba(255, 255, 255, 0.2);
 }
 
-/* 可拖拽窗口的标题栏手感：仅在桌面模式下给出抓手指针 */
+/* M4 · 实心 —— 关闭效果态、工具提示、浮层内嵌 */
+.glass-solid {
+  --m-bg: var(--glass-solid);
+  --m-blur: 0px;
+  --m-sat: 100%;
+  --m-edge: var(--ink-200);
+  --m-r: var(--r-card);
+  --m-shadow: var(--shadow-1);
+  --m-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.06));
+  --m-inset: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* "透明与模糊效果"关闭时，四档全部退化为实心，不留任何模糊层 */
+[data-effects='off'] .glass-thin,
+[data-effects='off'] .glass,
+[data-effects='off'] .glass-dense {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: var(--glass-solid);
+  background-image: var(--m-sheen);
+}
+
+/* 强调色淡底：需要"选中的玻璃块"时叠加，不新造材质 */
+.glass-tint {
+  background: color-mix(in srgb, var(--accent) 14%, var(--glass-base));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--glass-edge));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* ==========================================================================
+   动效系统 · 果冻五式
+   动画只碰 transform 与 opacity。果冻强度由 stores/desktop.ts 下发的
+   --spring-jelly 决定（关闭时退化为 --spring-settle），组件无需感知。
+   ========================================================================== */
+
+/* press-squash · 按压缩，松手弹回过冲 */
+.jelly-press {
+  transition: transform var(--dur-2) var(--spring-jelly);
+}
+
+.jelly-press:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
+}
+
+/* hover-lift · 悬停抬升 */
+.jelly-hover {
+  transition:
+    transform var(--dur-2) var(--spring-jelly),
+    box-shadow var(--dur-2) var(--spring-settle),
+    background-color var(--dur-2) var(--spring-settle);
+}
+
+.jelly-hover:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: var(--shadow-2);
+}
+
+/* entrance-overshoot · 入场到 1.015 过冲后回位 */
+@keyframes jelly-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(26px) scale(0.94);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* icon-pop · 单次弹跳 */
+@keyframes jelly-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ==========================================================================
+   全局氛围与基础件
+   ========================================================================== */
+
 .win .win-bar {
   user-select: none;
 }
@@ -128,20 +394,59 @@ textarea:focus-visible {
   cursor: grabbing;
 }
 
+/* 表单控件统一皮：三处 v-text-field 共用，组件内不再各自覆写 */
+.glass-field .v-field {
+  border-radius: var(--r-control);
+  font-size: var(--fs-body);
+  color: var(--text);
+  background: var(--glass-thin);
+}
+
+.glass-field .v-field__outline {
+  opacity: 0;
+}
+
+.glass-field .v-field .v-icon {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.glass-field .v-field input::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+
+.glass-field .v-field:has(input:focus) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
 /* 右上角的消息提示：字体、圆角与阴影跟页面保持一套 */
 .v-snackbar__wrapper {
-  border-radius: 14px;
+  border-radius: var(--r-control);
   font-family: var(--body-font);
-  color: #fffdf5;
-  box-shadow: 0 14px 30px rgba(133, 96, 26, 0.28);
+  color: var(--cream-000);
+  box-shadow: var(--shadow-2);
 }
 
 .v-snackbar__content {
   font-family: var(--body-font);
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
 /* ------------------------------ Vuetify 对齐 ------------------------------ */
+
+/* vuetify/styles 在 main.ts 里晚于本文件加载，等特异性下它的规则会赢，
+   所以这里统一把控件挂到 .v-application 之下提高一级特异性，
+   让圆角全部回到 --radius 派生的令牌上。 */
+.v-application .v-btn,
+.v-application .v-field,
+.v-application .v-btn--variant-flat {
+  border-radius: var(--r-control);
+}
+
+.v-application .v-progress-linear {
+  border-radius: var(--r-pill);
+}
 
 .v-application {
   background: transparent !important;
@@ -167,12 +472,7 @@ textarea:focus-visible {
 .v-btn {
   text-transform: none;
   letter-spacing: 0.1px;
-  font-weight: 500;
-}
-
-/* 聚焦提示改用柔光，不画边框 */
-.glass-field .v-field:has(input:focus) {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  font-weight: var(--fw-medium);
 }
 
 /* ------------------------------ 无障碍动效 ------------------------------ */
@@ -184,5 +484,9 @@ textarea:focus-visible {
     animation-duration: 0.001ms !important;
     animation-delay: 0s !important;
     transition-duration: 0.001ms !important;
+  }
+
+  :root {
+    --spring-jelly: var(--spring-settle);
   }
 }

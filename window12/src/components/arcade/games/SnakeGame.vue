@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useDesktopStore } from '../../../stores/desktop'
 
 const CELL = 16
 const COLS = 20
@@ -19,9 +20,10 @@ let dir: Point = { x: 1, y: 0 }
 let queued: Point | null = null
 let timer: number | undefined
 
-function accentColor() {
+/* 画布内的颜色也要走令牌：从宿主元素上读计算值，主题换了立刻跟着换 */
+function tokenColor(name: string, fallback: string) {
   const styles = canvasEl.value ? getComputedStyle(canvasEl.value) : null
-  return styles?.getPropertyValue('--accent').trim() || '#6d4ab8'
+  return styles?.getPropertyValue(name).trim() || fallback
 }
 
 function draw() {
@@ -30,7 +32,7 @@ function draw() {
   const size = COLS * CELL
   ctx.clearRect(0, 0, size, size)
 
-  ctx.strokeStyle = 'rgba(61, 43, 14, 0.08)'
+  ctx.strokeStyle = tokenColor('--ink-100', 'rgba(74, 56, 20, 0.1)')
   ctx.lineWidth = 1
   for (let i = 1; i < COLS; i++) {
     ctx.beginPath()
@@ -43,12 +45,13 @@ function draw() {
     ctx.stroke()
   }
 
-  ctx.fillStyle = '#e2802e'
+  /* 食物用暖红（苹果色），和蛇身的强调色始终拉开距离 */
+  ctx.fillStyle = tokenColor('--danger', '#d9564a')
   ctx.beginPath()
   ctx.arc(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2, CELL / 2 - 3, 0, Math.PI * 2)
   ctx.fill()
 
-  ctx.fillStyle = accentColor()
+  ctx.fillStyle = tokenColor('--accent', '#d99b1e')
   snake.forEach((seg, index) => {
     ctx.globalAlpha = index === 0 ? 1 : 0.6
     ctx.beginPath()
@@ -150,10 +153,18 @@ function onKey(event: KeyboardEvent) {
   }
 }
 
+const desktop = useDesktopStore()
+
 onMounted(() => {
   reset()
   wrapEl.value?.focus()
 })
+
+/* 强调色/主题变了就重绘——画布不会自己跟着 CSS 变量刷新 */
+watch(
+  () => [desktop.accent, desktop.effects],
+  () => draw(),
+)
 
 onBeforeUnmount(() => window.clearInterval(timer))
 </script>
@@ -194,14 +205,15 @@ onBeforeUnmount(() => window.clearInterval(timer))
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: var(--fs-label);
 }
 
 .snake-score {
   font-family: var(--display-font);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-bold);
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .snake-best {
@@ -218,8 +230,8 @@ onBeforeUnmount(() => window.clearInterval(timer))
 canvas {
   width: 100%;
   max-width: 320px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--r-card);
+  background: var(--glass-thin);
 }
 
 .snake-mask {
@@ -230,20 +242,32 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 14px;
-  background: rgba(255, 253, 245, 0.82);
+  border-radius: var(--r-card);
+  background: var(--glass-solid);
   color: var(--text);
   text-align: center;
 }
 
 .snake-mask p {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
 .snake-btn {
   background: var(--accent);
-  color: #fffdf5;
+  color: var(--accent-contrast);
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
+}
+
+.snake-btn:hover {
+  background: var(--accent-deep);
+}
+
+.snake-btn:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
 }
 </style>

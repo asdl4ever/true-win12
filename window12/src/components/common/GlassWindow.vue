@@ -58,20 +58,20 @@ defineEmits<{ close: []; minimize: [] }>()
   will-change: opacity, transform;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: rgba(255, 253, 245, 0.66);
+  background: var(--glass-solid);
   background-image: none;
 }
 
 .win-fade-enter-active {
   transition:
-    opacity 0.18s ease-out,
-    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity var(--dur-2) var(--spring-out),
+    transform var(--dur-3) var(--spring-jelly);
 }
 
 .win-fade-leave-active {
   transition:
-    opacity 0.24s ease-out,
-    transform 0.3s cubic-bezier(0.32, 0.72, 0.3, 1);
+    opacity var(--dur-2) var(--spring-out),
+    transform var(--dur-3) var(--spring-settle);
   /* 阴影不单独改：跟随整体透明度一起淡出（瞬时改阴影会看到一下跳变） */
   pointer-events: none;
 }
@@ -94,53 +94,63 @@ defineEmits<{ close: []; minimize: [] }>()
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 10px 8px 10px 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
-  border-bottom: 1px solid var(--ink-line);
+  padding: 12px 12px 12px 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
 }
 
 .win-app {
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
 .win-title {
   margin: 0;
   font-family: var(--display-font);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.2px;
+  font-weight: var(--fw-semi);
+  font-size: var(--fs-title);
+  letter-spacing: -0.01em;
 }
 
 .win-actions {
   margin-inline-start: auto;
   display: flex;
-  gap: 2px;
+  gap: 6px;
 }
 
+/* 液态玻璃的圆形控件：静默时只有一个淡淡的高光边，悬浮才显形 */
 .win-btn {
-  width: 30px;
+  width: 26px;
   height: 26px;
   display: grid;
   place-items: center;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
+  border: 1px solid var(--glass-edge);
+  border-radius: 50%;
+  background: var(--glass-thin);
   color: inherit;
   opacity: 0.72;
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    opacity 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    opacity var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .win-btn:hover {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--glass-solid);
+  box-shadow: var(--shadow-1);
   opacity: 1;
+  transform: scale(1.06);
+}
+
+.win-btn:active {
+  transform: scale(0.92);
+  transition-duration: var(--dur-1);
 }
 
 .win-btn.close:hover {
-  background: #e81123;
-  color: #fff;
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--on-danger);
   opacity: 1;
 }
 </style>

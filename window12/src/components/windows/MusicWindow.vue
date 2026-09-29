@@ -42,9 +42,6 @@ function format(seconds: number) {
       :step="1"
       hide-details
       density="compact"
-      color="#3d2b0e"
-      track-color="rgba(61, 43, 14, 0.22)"
-      track-fill-color="rgba(61, 43, 14, 0.7)"
     />
 
     <div class="times">
@@ -108,14 +105,14 @@ function format(seconds: number) {
   flex: 0 0 auto;
   width: 68px;
   height: 68px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.72));
-  color: var(--accent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--accent) 22%, var(--glass-base));
+  color: var(--accent-deep);
+  box-shadow: inset 0 1px 0 var(--glass-edge);
 }
 
 .art.spinning {
-  animation: art-pulse 3.2s ease-in-out infinite;
+  animation: art-pulse 3.2s var(--ease-loop) infinite;
 }
 
 @keyframes art-pulse {
@@ -131,14 +128,14 @@ function format(seconds: number) {
 .track {
   margin: 0 0 2px;
   font-family: var(--display-font);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-bold);
   color: var(--text);
 }
 
 .artist {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
@@ -163,7 +160,7 @@ function format(seconds: number) {
 
 .waves.on i {
   opacity: 1;
-  animation: wave 0.9s ease-in-out infinite;
+  animation: wave 0.9s var(--ease-loop) infinite;
 }
 
 .waves i:nth-child(2) {
@@ -196,8 +193,9 @@ function format(seconds: number) {
 .times {
   display: flex;
   justify-content: space-between;
-  font-size: 10.5px;
+  font-size: var(--fs-micro);
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .controls {
@@ -209,7 +207,19 @@ function format(seconds: number) {
 
 .controls .play {
   background: var(--accent);
-  color: #fffdf5;
+  color: var(--accent-contrast);
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
+}
+
+.controls .play:hover {
+  background: var(--accent-deep);
+}
+
+.controls .play:active {
+  transform: scale(0.92);
+  transition-duration: var(--dur-1);
 }
 
 /* -------------------------------- 歌单 -------------------------------- */
@@ -232,25 +242,25 @@ function format(seconds: number) {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid transparent;
-  border-radius: 11px;
+  border-radius: var(--r-control);
   background: transparent;
   color: var(--text);
   font-family: var(--body-font);
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   text-align: start;
   cursor: pointer;
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle);
 }
 
 .pl-row:hover {
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--glass-thin);
 }
 
 .pl-row.on {
-  background: rgba(255, 255, 255, 0.78);
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--glass-base));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--glass-edge));
 }
 
 .pl-icon {
@@ -259,9 +269,9 @@ function format(seconds: number) {
   flex: 0 0 auto;
   width: 26px;
   height: 26px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 16%, rgba(255, 255, 255, 0.7));
-  color: var(--accent);
+  border-radius: var(--r-inner);
+  background: color-mix(in srgb, var(--accent) 16%, var(--glass-base));
+  color: var(--accent-deep);
 }
 
 .pl-title {
@@ -273,13 +283,14 @@ function format(seconds: number) {
 .pl-artist {
   margin-inline-start: auto;
   flex: 0 0 auto;
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
 .pl-dur {
   flex: 0 0 auto;
-  font-size: 10.5px;
+  font-size: var(--fs-micro);
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 </style>

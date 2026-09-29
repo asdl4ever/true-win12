@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { accounts } from '../data/accounts'
 import { apps, taskbarItems } from '../data/apps'
 import { games } from '../data/games'
+import { accents, defaultAccent, accentOf } from '../data/palette'
 import type {
   Account,
   AppEntry,
@@ -138,22 +139,41 @@ export const useDesktopStore = defineStore('desktop', () => {
 
   /* -------------------------------- 外观设置 ------------------------------- */
 
-  const accent = ref('#6d4ab8')
-  const accents = [
-    { name: '紫罗兰', value: '#6d4ab8' },
-    { name: '蜂蜜', value: '#a86a10' },
-    { name: '抹茶', value: '#4f7a44' },
-    { name: '莓果', value: '#a83a68' },
-  ]
-  const blur = ref(24)
-  const radius = ref(20)
+  /* 外观设置的初值必须与 src/style.css 的 :root 一致，
+     否则内联的 tokens 会永久覆盖样式表，设置面板显示的数字也就成了假的 */
+  const accent = ref(defaultAccent.value)
+  const accentDeep = ref(defaultAccent.deep)
+  const accentContrast = ref(defaultAccent.contrast)
+  const blur = ref(28)
+  const radius = ref(26)
   const effects = ref(true)
+  const specular = ref(true)
 
-  /** 设置面板改的就是这三个变量，卡片通过 CSS 变量整体响应 */
+  /** 果冻强度：1 标准 / 0.5 轻柔 / 0 关闭 */
+  const jelly = ref(1)
+
+  const JELLY_CURVES: Record<string, string> = {
+    '1': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    '0.5': 'cubic-bezier(0.3, 1.2, 0.6, 1)',
+    '0': 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+  }
+
+  /** 强调色三件套成套下发，避免出现白字压浅底这类不成套的组合 */
+  function applyAccent(value: string) {
+    const preset = accentOf(value)
+    accent.value = preset.value
+    accentDeep.value = preset.deep
+    accentContrast.value = preset.contrast
+  }
+
+  /** 设置面板改的就是这几个变量，卡片通过 CSS 变量整体响应 */
   const tokens = computed(() => ({
     '--accent': accent.value,
+    '--accent-deep': accentDeep.value,
+    '--accent-contrast': accentContrast.value,
     '--blur': `${effects.value ? blur.value : 0}px`,
     '--radius': `${radius.value}px`,
+    '--spring-jelly': JELLY_CURVES[String(jelly.value)],
   }))
 
   /* -------------------------------- 消息提示 ------------------------------- */
@@ -172,8 +192,9 @@ export const useDesktopStore = defineStore('desktop', () => {
   /* 任务栏的账号/电源态：点 Win 时任务栏内容整体换成头像与关机 */
   const accountBarOpen = ref(false)
 
-  /* 当前登录账号：开始菜单与商店共用 */
-  const user = ref(accounts[0])
+  /* 机器上的账号列表与当前登录账号：任务栏切换面板与商店共用 */
+  const accountList = ref<Account[]>([...accounts])
+  const user = ref(accountList.value[0])
 
   function switchUser(account: Account) {
     if (account.id === user.value.id) {
@@ -182,8 +203,43 @@ export const useDesktopStore = defineStore('desktop', () => {
     }
     user.value = account
     /* 每个账号有自己的一套外观，切换后整桌主题跟着换 */
-    accent.value = account.accent
+    applyAccent(account.accent)
     notify(`已切换到 ${account.name} 的桌面`)
+  }
+
+  /* 新增账号：按输入的名字建一个，并立刻切过去 */
+  let newUserSeq = 0
+  function addUser(name: string) {
+    newUserSeq += 1
+    const account: Account = {
+      id: `user-${Date.now()}`,
+      name,
+      initial: name.slice(0, 1),
+      role: '标准用户',
+      accent: accents[newUserSeq % accents.length].value,
+      avatar: `https://api.dicebear.com/9.x/micah/svg?seed=${encodeURIComponent(name)}`,
+    }
+    accountList.value = [...accountList.value, account]
+    user.value = account
+    applyAccent(account.accent)
+    notify(`已新增账号 ${account.name}`)
+  }
+
+  /* 删除账号：至少留一个；删掉的正好是当前账号时，自动切到剩下的第一个 */
+  function removeUser(id: string) {
+    if (accountList.value.length <= 1) {
+      notify('至少要保留一个账号')
+      return
+    }
+    const target = accountList.value.find((item) => item.id === id)
+    if (!target) return
+    accountList.value = accountList.value.filter((item) => item.id !== id)
+    if (user.value.id === id) {
+      const next = accountList.value[0]
+      user.value = next
+      applyAccent(next.accent)
+    }
+    notify(`已删除账号 ${target.name}`)
   }
 
   /* -------------------------------- 应用商店 ------------------------------- */
@@ -346,9 +402,14 @@ export const useDesktopStore = defineStore('desktop', () => {
     placeWindow,
     accent,
     accents,
+    accentDeep,
+    accentContrast,
+    applyAccent,
     blur,
     radius,
     effects,
+    specular,
+    jelly,
     tokens,
     message,
     toasting,
@@ -356,7 +417,10 @@ export const useDesktopStore = defineStore('desktop', () => {
     selectedIcon,
     accountBarOpen,
     user,
+    accountList,
     switchUser,
+    addUser,
+    removeUser,
     installedGames,
     installing,
     activeGame,

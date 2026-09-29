@@ -35,6 +35,8 @@ const { power } = storeToRefs(desktop)
 </template>
 
 <style scoped>
+/* 开机 / 关机 / 已关机是唯一允许"实心不透明"的场景——它盖住整个桌面，
+   背后没有任何东西可透，所以不使用玻璃材质，只用奶黄令牌铺光。 */
 .power {
   position: fixed;
   inset: 0;
@@ -48,8 +50,14 @@ const { power } = storeToRefs(desktop)
 
 /* ------------------------------- 开机 ------------------------------- */
 
+/* 奶黄环境：向上渐亮的暖光，把标记托出来 */
 .boot {
-  background: linear-gradient(180deg, #fffaea 0%, #fff1c8 42%, #f8d98c 62%, #e6b055 100%);
+  background: radial-gradient(
+    120% 90% at 50% 6%,
+    var(--cream-000) 0%,
+    var(--cream-100) 50%,
+    var(--cream-200) 100%
+  );
 }
 
 /* 地平线以上是舞台，文字从舞台下沿（也就是地平线）升出来 */
@@ -62,30 +70,30 @@ const { power } = storeToRefs(desktop)
   justify-content: center;
 }
 
+/* 品牌 Logotype：全大写 + 宽字距，是全站唯一允许的例外 */
 .boot-mark {
   margin: 0 0 -0.18em;
   font-family: var(--display-font);
-  font-weight: 800;
-  font-size: clamp(46px, 8vw, 84px);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-hero);
   letter-spacing: 0.16em;
-  color: #4a3208;
-  text-shadow: 0 10px 34px rgba(255, 226, 150, 0.9);
-  animation: mark-rise 1.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  color: var(--ink-900);
+  text-shadow: 0 8px 34px color-mix(in srgb, var(--cream-000) 95%, transparent);
+  animation: mark-rise 1.7s var(--spring-out) both;
 }
 
+/* 只碰 opacity 与 transform —— 动画 filter 会触发逐帧重绘 */
 @keyframes mark-rise {
   from {
     opacity: 0;
-    transform: translateY(105%);
-    filter: blur(8px);
+    transform: translateY(105%) scale(0.96);
   }
   55% {
     opacity: 1;
   }
   to {
     opacity: 1;
-    transform: translateY(-6%);
-    filter: blur(0);
+    transform: translateY(-6%) scale(1);
   }
 }
 
@@ -97,10 +105,10 @@ const { power } = storeToRefs(desktop)
   height: 62vh;
   background: radial-gradient(
     50% 50% at 50% 100%,
-    rgba(255, 238, 182, 0.95),
-    rgba(255, 238, 182, 0) 70%
+    color-mix(in srgb, var(--cream-050) 90%, transparent),
+    transparent 70%
   );
-  animation: sun-rise 1.8s ease both;
+  animation: sun-rise 1.8s var(--spring-out) both;
 }
 
 @keyframes sun-rise {
@@ -120,8 +128,13 @@ const { power } = storeToRefs(desktop)
   right: 0;
   top: 62%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(120, 86, 24, 0.5), transparent);
-  animation: line-open 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--ink-700) 50%, transparent),
+    transparent
+  );
+  animation: line-open 1.4s var(--spring-settle) both;
 }
 
 @keyframes line-open {
@@ -139,9 +152,9 @@ const { power } = storeToRefs(desktop)
   position: absolute;
   bottom: 12%;
   margin: 0;
-  font-size: 13px;
-  color: rgba(74, 50, 8, 0.62);
-  animation: tip-in 1s ease 1.1s both;
+  font-size: var(--fs-body);
+  color: var(--ink-500);
+  animation: tip-in 1s var(--spring-settle) 1.1s both;
 }
 
 @keyframes tip-in {
@@ -157,9 +170,9 @@ const { power } = storeToRefs(desktop)
 
 .bye {
   gap: 14px;
-  background: linear-gradient(180deg, #fff6dc 0%, #f2d59a 100%);
-  color: #4a3208;
-  font-size: 14px;
+  background: linear-gradient(180deg, var(--cream-050) 0%, var(--cream-200) 100%);
+  color: var(--ink-900);
+  font-size: var(--fs-body);
 }
 
 .bye p {
@@ -169,6 +182,7 @@ const { power } = storeToRefs(desktop)
 .bye-spin {
   display: grid;
   place-items: center;
+  /* 匀速旋转是 linear 的唯一正当用法 */
   animation: spin 1s linear infinite;
 }
 
@@ -180,9 +194,15 @@ const { power } = storeToRefs(desktop)
 
 /* ------------------------------ 已关机 ------------------------------ */
 
+/* 全站唯一的近黑场景：关机后屏幕本就该是暗的。
+   底色仍从暖棕墨色派生，不用纯黑，以免和整体暖调脱节。 */
 .off {
   gap: 16px;
-  background: radial-gradient(62% 62% at 50% 58%, #2b1f0d 0%, #161003 100%);
+  background: radial-gradient(
+    62% 62% at 50% 58%,
+    color-mix(in srgb, var(--ink-900) 62%, #000) 0%,
+    color-mix(in srgb, var(--ink-900) 26%, #000) 100%
+  );
 }
 
 .off-btn {
@@ -190,33 +210,38 @@ const { power } = storeToRefs(desktop)
   height: 66px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 246, 220, 0.28);
+  border: 1px solid color-mix(in srgb, var(--cream-050) 28%, transparent);
   border-radius: 50%;
-  background: rgba(255, 246, 220, 0.06);
-  color: #ffeec2;
+  background: color-mix(in srgb, var(--cream-050) 6%, transparent);
+  color: var(--cream-100);
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .off-btn:hover {
-  background: rgba(255, 246, 220, 0.14);
-  box-shadow: 0 0 0 8px rgba(255, 238, 194, 0.07);
-  transform: scale(1.04);
+  background: color-mix(in srgb, var(--cream-050) 14%, transparent);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--cream-100) 7%, transparent);
+  transform: scale(1.06);
+}
+
+.off-btn:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
 }
 
 .off-tip {
   margin: 0;
-  font-size: 12.5px;
-  color: rgba(255, 238, 194, 0.62);
+  font-size: var(--fs-label);
+  color: color-mix(in srgb, var(--cream-100) 62%, transparent);
 }
 
 /* 整层淡入淡出 */
 .power-enter-active,
 .power-leave-active {
-  transition: opacity 0.55s ease;
+  transition: opacity var(--dur-5) var(--spring-settle);
 }
 
 .power-enter-from,

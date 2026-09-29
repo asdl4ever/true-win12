@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useSpecular } from '../../composables/useSpecular'
 import { useWindowDrag } from '../../composables/useWindowDrag'
 import { games } from '../../data/games'
 import { useDesktopStore } from '../../stores/desktop'
@@ -24,9 +25,22 @@ import TaskBar from './TaskBar.vue'
  * 拖拽、任务栏收起、时钟等交互也各自在 composables 里。
  */
 const desktop = useDesktopStore()
-const { panels, tokens, message: toastText, toasting: toast, power, taskViewOpen, searchOpen, activeGame } =
-  storeToRefs(desktop)
+const {
+  panels,
+  tokens,
+  effects,
+  specular,
+  message: toastText,
+  toasting: toast,
+  power,
+  taskViewOpen,
+  searchOpen,
+  activeGame,
+} = storeToRefs(desktop)
 const { dockPanel } = desktop
+
+/* 液态玻璃的镜面反光：整个应用只挂一份监听 */
+useSpecular(() => effects.value && specular.value)
 
 /* 舞台元素用模板 ref 挂上，交给拖拽逻辑量可用区域 */
 const stageEl = ref<HTMLElement | null>(null)
@@ -61,7 +75,12 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
 </script>
 
 <template>
-  <v-app class="desktop" :class="{ ready: power === 'on' }" :style="tokens">
+  <v-app
+    class="desktop"
+    :class="{ ready: power === 'on' }"
+    :data-effects="effects ? 'on' : 'off'"
+    :style="tokens"
+  >
     <div class="glow" aria-hidden="true"></div>
 
     <main class="desk" @click="desktop.selectedIcon = null">
@@ -152,7 +171,7 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
       class="toast"
       :timeout="1900"
       location="top right"
-      color="rgba(61, 43, 14, 0.92)"
+      color="rgba(61, 43, 14, 0.9)"
     >
       {{ toastText }}
     </v-snackbar>
@@ -164,20 +183,29 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
 <style scoped>
 /* --------------------------------- 壁纸光晕 -------------------------------- */
 
+/* 空间环境光：一大团顶光 + 奶黄柔光 + 琥珀暖光，撑出 visionOS 的进深与空气感。
+   整层只做 transform 位移的缓慢漂浮——它是合成层，不触发重绘。 */
 .glow {
   position: fixed;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(58% 48% at 16% 8%, rgba(255, 255, 255, 0.62), transparent 70%),
-    radial-gradient(
-      46% 46% at 88% 78%,
-      color-mix(in srgb, var(--accent) 30%, transparent),
-      transparent 72%
-    ),
-    radial-gradient(36% 36% at 74% 4%, rgba(255, 196, 96, 0.55), transparent 70%);
-  filter: blur(6px);
+    radial-gradient(60% 46% at 18% 4%, var(--ambient-white), transparent 68%),
+    radial-gradient(52% 52% at 86% 82%, var(--ambient-gold), transparent 74%),
+    radial-gradient(40% 40% at 72% 2%, var(--ambient-warm), transparent 72%),
+    radial-gradient(38% 38% at 96% 30%, rgba(216, 169, 60, 0.18), transparent 72%);
+  filter: blur(18px);
   transition: background 0.6s ease;
+  animation: glow-drift 26s var(--ease-loop) infinite alternate;
+}
+
+@keyframes glow-drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.06);
+  }
 }
 
 /* --------------------------------- 桌面布局 -------------------------------- */
@@ -205,7 +233,7 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
 .stage.animating :deep(.glass-window) {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: rgba(255, 253, 245, 0.66);
+  background: var(--glass-solid);
   background-image: none;
 }
 
@@ -216,10 +244,10 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
   z-index: 10;
   /* 入场延时由外层 .desktop.ready .win 统一给（animation 简写会覆盖这里的 animation-delay） */
   transition:
-    left 0.18s ease,
-    top 0.18s ease,
-    scale 0.26s cubic-bezier(0.2, 0.8, 0.2, 1),
-    translate 0.26s cubic-bezier(0.2, 0.8, 0.2, 1),
+    left var(--dur-2) var(--spring-settle),
+    top var(--dur-2) var(--spring-settle),
+    scale var(--dur-3) var(--spring-jelly),
+    translate var(--dur-3) var(--spring-jelly),
     visibility 0s linear 0s;
 }
 
@@ -231,9 +259,9 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
   visibility: hidden;
   pointer-events: none;
   transition:
-    scale 0.26s cubic-bezier(0.2, 0.8, 0.2, 1),
-    translate 0.26s cubic-bezier(0.2, 0.8, 0.2, 1),
-    visibility 0s linear 0.26s;
+    scale var(--dur-3) var(--spring-jelly),
+    translate var(--dur-3) var(--spring-jelly),
+    visibility 0s linear var(--dur-3);
 }
 
 /* 只给「收到右侧」的窗口挂过渡：写成常驻规则会盖掉玻璃卡片自己的开合过渡
@@ -294,26 +322,15 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
 /* 桌面入场动画等开机画面退场后再播；图标与任务栏在各自组件里，用 :deep 穿透 */
 /* 延后写在简写里：animation 简写会把 animation-delay 重置，子组件里的延时是无效的 */
 .desktop.ready :deep(.desk-icons) {
-  animation: rise 0.85s cubic-bezier(0.16, 0.84, 0.28, 1) 0.44s both;
+  animation: jelly-rise var(--dur-5) var(--spring-out) 0.32s both;
 }
 
 .desktop.ready .win {
-  animation: rise 0.9s cubic-bezier(0.16, 0.84, 0.28, 1) var(--d, 0s) both;
+  animation: jelly-rise var(--dur-5) var(--spring-out) var(--d, 0s) both;
 }
 
 .desktop.ready :deep(.taskbar) {
-  animation: rise-bar 0.85s cubic-bezier(0.16, 0.84, 0.28, 1) 0.52s both;
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(26px) scale(0.965);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+  animation: rise-bar var(--dur-5) var(--spring-out) 0.4s both;
 }
 
 @keyframes rise-bar {

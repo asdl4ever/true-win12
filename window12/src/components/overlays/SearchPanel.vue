@@ -90,7 +90,7 @@ onMounted(() => field.value?.focus())
 
 <template>
   <div class="search-overlay" @click.self="desktop.closeSearch()">
-    <section class="search-box glass" role="dialog" aria-label="搜索">
+    <section class="search-box glass-dense" role="dialog" aria-label="搜索">
       <v-text-field
         ref="field"
         v-model="query"
@@ -99,7 +99,7 @@ onMounted(() => field.value?.focus())
         hide-details
         variant="solo"
         flat
-        bg-color="rgba(255, 255, 255, 0.62)"
+        bg-color="transparent"
         placeholder="搜索应用、文件与设置"
         prepend-inner-icon="mdi-magnify"
         append-inner-icon="mdi-close"
@@ -146,11 +146,12 @@ onMounted(() => field.value?.focus())
   position: fixed;
   inset: 0;
   z-index: 78;
-  background: rgba(94, 66, 20, 0.28);
-  backdrop-filter: blur(22px) saturate(130%);
-  -webkit-backdrop-filter: blur(22px) saturate(130%);
+  background: var(--scrim);
+  backdrop-filter: blur(var(--blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(140%);
 }
 
+/* M3 厚玻璃：材质、圆角、阴影全部来自 .glass-dense */
 .search-box {
   position: absolute;
   left: 50%;
@@ -162,9 +163,7 @@ onMounted(() => field.value?.focus())
   width: min(620px, 92vw);
   max-height: 58vh;
   padding: 16px;
-  border-radius: var(--radius);
-  box-shadow: 0 32px 72px rgba(140, 100, 30, 0.36);
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform var(--dur-3) var(--spring-jelly);
 }
 
 .hits {
@@ -185,21 +184,22 @@ onMounted(() => field.value?.focus())
   width: 100%;
   padding: 9px 11px;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--r-control);
   background: transparent;
   color: var(--text);
   font-family: var(--body-font);
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   text-align: start;
   cursor: pointer;
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle);
 }
 
 .hit.on {
-  background: rgba(255, 255, 255, 0.74);
-  border-color: var(--ink-line);
+  background: color-mix(in srgb, var(--accent) 14%, var(--glass-base));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--glass-edge));
+  box-shadow: var(--shadow-1);
 }
 
 .hit-icon {
@@ -208,9 +208,9 @@ onMounted(() => field.value?.focus())
   flex: 0 0 auto;
   width: 30px;
   height: 30px;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--accent) 16%, rgba(255, 255, 255, 0.68));
-  color: var(--accent);
+  border-radius: var(--r-inner);
+  background: color-mix(in srgb, var(--accent) 16%, var(--glass-base));
+  color: var(--accent-deep);
 }
 
 .hit-label {
@@ -222,13 +222,13 @@ onMounted(() => field.value?.focus())
 .hit-meta {
   margin-inline-start: auto;
   flex: 0 0 auto;
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
 .hits-empty {
   margin: 6px 2px;
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   color: var(--text-muted);
 }
 
@@ -237,20 +237,23 @@ onMounted(() => field.value?.focus())
   gap: 14px;
   padding: 10px 4px 2px;
   border-top: 1px solid var(--ink-line);
-  font-size: 11px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
 }
 
 .search-foot b {
   font-family: var(--display-font);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: var(--text);
 }
 
-/* 进出场：外面淡入，面板再轻轻上浮一点（类名由外层 transition 打到根节点上） */
+/* 进出场：外面淡入，面板再轻轻上浮一点（类名由外层 transition 打到根节点上）。
+   过渡期间摘掉全屏模糊 */
 .search-enter-active,
 .search-leave-active {
-  transition: opacity 0.24s ease;
+  transition: opacity var(--dur-3) var(--spring-settle);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .search-enter-from,

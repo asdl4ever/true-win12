@@ -84,8 +84,8 @@ onBeforeUnmount(clearTimers)
       :model-value="(left / ROUND) * 100"
       height="5"
       rounded
-      color="#3d2b0e"
-      bg-color="rgba(61, 43, 14, 0.16)"
+      color="var(--accent)"
+      bg-color="var(--ink-200)"
     />
 
     <div class="wam-grid">
@@ -126,15 +126,16 @@ onBeforeUnmount(clearTimers)
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   color: var(--text-muted);
 }
 
 .wam-score {
   font-family: var(--display-font);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--fs-title);
+  font-weight: var(--fw-bold);
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .wam-grid {
@@ -149,26 +150,27 @@ onBeforeUnmount(clearTimers)
   display: grid;
   place-items: end center;
   padding: 0 0 6px;
-  border: 1px solid rgba(61, 43, 14, 0.12);
-  border-radius: 14px;
-  background: rgba(61, 43, 14, 0.08);
+  border: 1px solid var(--ink-200);
+  border-radius: var(--r-card);
+  background: var(--ink-100);
   cursor: pointer;
   overflow: hidden;
-  transition: background 0.2s ease;
+  transition: background-color var(--dur-2) var(--spring-settle);
 }
 
 .wam-hole:hover {
-  background: rgba(61, 43, 14, 0.14);
+  background: var(--ink-200);
 }
 
+/* 地鼠：暖棕，从墨色与奶黄之间派生，不再用未注册的裸色 */
 .wam-mole {
   position: relative;
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  background: #a8763c;
-  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.16);
-  animation: mole-up 0.16s ease-out;
+  background: color-mix(in srgb, var(--ink-700) 62%, var(--cream-300));
+  box-shadow: inset 0 -6px 0 color-mix(in srgb, var(--ink-900) 22%, transparent);
+  animation: mole-up var(--dur-2) var(--spring-jelly);
 }
 
 .wam-mole::before,
@@ -179,7 +181,7 @@ onBeforeUnmount(clearTimers)
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #3d2b0e;
+  background: var(--text);
 }
 
 .wam-mole::before {
@@ -200,14 +202,26 @@ onBeforeUnmount(clearTimers)
 
 .wam-hint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-caption);
   color: var(--text-muted);
   text-align: center;
 }
 
 .wam-btn {
   background: var(--accent);
-  color: #fffdf5;
+  color: var(--accent-contrast);
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
+}
+
+.wam-btn:hover {
+  background: var(--accent-deep);
+}
+
+.wam-btn:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
 }
 
 @keyframes mole-up {

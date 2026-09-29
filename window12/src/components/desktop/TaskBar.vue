@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onKeyStroke, useEventListener } from '@vueuse/core'
 import { storeToRefs } from 'pinia'
-import { computed, ref, type ComponentPublicInstance } from 'vue'
+import { computed, nextTick, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useTaskbarDrag } from '../../composables/useTaskbarDrag'
 import { useTaskbarReorder } from '../../composables/useTaskbarReorder'
 import { taskbarItems } from '../../data/apps'
@@ -12,14 +12,72 @@ import type { TaskbarItem } from '../../types/desktop'
 /* 任务栏：左边固定 Win 与搜索，中间是可拖动排序的应用按钮，右端是播放中的音乐律动 */
 const desktop = useDesktopStore()
 const player = usePlayerStore()
-const { panels, docked, accountBarOpen, searchOpen, taskbarOrder } = storeToRefs(desktop)
+const { panels, docked, accountBarOpen, searchOpen, taskbarOrder, accountList } =
+  storeToRefs(desktop)
 const { toggleDock, openSearch, powerOff, notify, moveTaskbarItem } = desktop
 
 /* 头像来自在线插画服务，取不到时退回姓氏文字 */
 const avatarsOk = ref(true)
 
+/* 账号态里点开头像后浮出的切换面板 */
+const switcherOpen = ref(false)
+
 function toggleAccountBar() {
   accountBarOpen.value = !accountBarOpen.value
+  switcherOpen.value = false
+}
+
+/* 选中某个账号：切过去并收起面板 */
+function pickUser(account: (typeof accountList.value)[number]) {
+  desktop.switchUser(account)
+  switcherOpen.value = false
+}
+
+/* 删除账号：叉号走 store 的规则（至少留一个） */
+function deleteUser(account: (typeof accountList.value)[number]) {
+  desktop.removeUser(account.id)
+}
+
+/* 换账号后重新给头像一次加载机会（之前失败的图不该一直空着） */
+watch(
+  () => desktop.user.id,
+  () => {
+    avatarsOk.value = true
+  },
+)
+
+/* 新增账号：开内置弹框，确认后建号并切过去 */
+const newUserOpen = ref(false)
+const newName = ref('')
+const nameInput = ref<HTMLInputElement | null>(null)
+
+function openNewUser() {
+  newName.value = ''
+  newUserOpen.value = true
+  nextTick(() => nameInput.value?.focus())
+}
+
+function closeNewUser() {
+  newUserOpen.value = false
+}
+
+/* 点卡片上除弹框外的区域，收起新增弹框 */
+function onPanelClick() {
+  if (newUserOpen.value) newUserOpen.value = false
+}
+
+function confirmNewUser() {
+  const name = newName.value.trim()
+  if (!name) return
+  desktop.addUser(name)
+  newUserOpen.value = false
+  switcherOpen.value = false
+}
+
+/* 插画头像取不到时，直接藏掉图片，露出底下的姓氏文字 */
+function hideBrokenAvatar(event: Event) {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
 }
 
 /* 按 store 里的顺序渲染按钮 */
@@ -31,12 +89,16 @@ const items = computed(() =>
 
 /* 拖动排序：落在哪个槽位就吸附到哪 */
 const listEl = ref<ComponentPublicInstance | HTMLElement | null>(null)
-const { draggingId, startItemDrag, moveItem, endItemDrag, consumeClick: wasDragging } =
+const { draggingId, dragDx, startItemDrag, moveItem, endItemDrag, consumeClick: wasDragging } =
   useTaskbarReorder({ listEl, onMove: moveTaskbarItem })
+
+/* 点击应用时图标弹跳一下，动画播完由模板清掉这个标记 */
+const bouncingId = ref<string | null>(null)
 
 function activate(item: TaskbarItem) {
   /* 刚拖动过就别当成点击 */
   if (wasDragging()) return
+  bouncingId.value = item.id
   if (item.panel) {
     toggleDock(item.panel)
     return
@@ -66,19 +128,22 @@ useEventListener(
     if (!accountBarOpen.value) return
     if (taskbarEl.value?.contains(event.target as Node)) return
     accountBarOpen.value = false
+    switcherOpen.value = false
   },
   { capture: true },
 )
 
 onKeyStroke('Escape', () => {
-  if (accountBarOpen.value) accountBarOpen.value = false
+  if (newUserOpen.value) newUserOpen.value = false
+  else if (switcherOpen.value) switcherOpen.value = false
+  else if (accountBarOpen.value) accountBarOpen.value = false
 })
 </script>
 
 <template>
       <footer
       ref="taskbarEl"
-      class="taskbar glass"
+      class="taskbar glass-dense"
       :class="{ 'is-hidden': barHidden, dragging: barDragging, account: accountBarOpen }"
       :style="barStyle"
       :tabindex="barHidden ? 0 : -1"
@@ -99,10 +164,92 @@ onKeyStroke('Escape', () => {
 
       <!-- 账号态：整条任务栏只剩头像与关机 -->
       <template v-if="accountBarOpen">
-        <span class="tb-avatar" :aria-label="`当前账号 ${desktop.user.name}`">
+        <button
+          class="tb-avatar"
+          type="button"
+          :aria-label="`当前账号 ${desktop.user.name}，点击切换或新增账号`"
+          :aria-expanded="switcherOpen"
+          @click.stop="switcherOpen = !switcherOpen"
+          @pointerdown.stop
+        >
           <img v-if="avatarsOk" :src="desktop.user.avatar" alt="" @error="avatarsOk = false" />
           <template v-else>{{ desktop.user.initial }}</template>
-        </span>
+        </button>
+
+        <!-- 点开头像浮出的账号面板：切换已有账号 / 新增账号 -->
+        <div
+          v-if="switcherOpen"
+          class="tb-users glass glass-dense"
+          :class="{ 'is-blurred': newUserOpen }"
+          @click.stop="onPanelClick"
+          @pointerdown.stop
+        >
+          <div class="tb-users-body">
+            <p class="tb-users-title">切换账号</p>
+            <div
+              v-for="account in accountList"
+              :key="account.id"
+              class="tu-item"
+              :class="{ on: account.id === desktop.user.id }"
+            >
+              <button class="tu-pick" type="button" @click.stop="pickUser(account)">
+                <span class="tu-avatar">
+                  {{ account.initial }}
+                  <img :src="account.avatar" alt="" @error="hideBrokenAvatar" />
+                </span>
+                <span class="tu-name">{{ account.name }}</span>
+                <span class="tu-role">{{ account.role }}</span>
+              </button>
+              <button
+                class="tu-del"
+                type="button"
+                :aria-label="`删除账号 ${account.name}`"
+                @click.stop="deleteUser(account)"
+              >
+                <v-icon icon="mdi-close" size="14" />
+              </button>
+            </div>
+            <button class="tu-add" type="button" @click.stop="openNewUser">
+              <v-icon icon="mdi-account-plus-outline" size="16" />
+              <span>新增账号</span>
+            </button>
+          </div>
+
+          <!-- 新增账号：盖住原卡片约 8 成区域的小卡片，背后的账号面板整体模糊 -->
+          <Transition name="udfade">
+            <section
+              v-if="newUserOpen"
+              class="ud"
+              role="dialog"
+              aria-label="新增账号"
+              @click.stop
+              @pointerdown.stop
+            >
+              <h2 class="ud-title">新增账号</h2>
+              <input
+                ref="nameInput"
+                v-model="newName"
+                class="ud-input"
+                type="text"
+                maxlength="12"
+                placeholder="账号名称"
+                @keydown.enter.prevent.stop="confirmNewUser"
+              />
+              <div class="ud-actions">
+                <button class="ud-btn" type="button" @click.stop="closeNewUser">取消</button>
+                <button
+                  class="ud-btn primary"
+                  type="button"
+                  :disabled="!newName.trim()"
+                  @click.stop="confirmNewUser"
+                >
+                  创建
+                </button>
+              </div>
+            </section>
+          </Transition>
+        </div>
+
         <button class="tb-btn tb-power" type="button" aria-label="关机" @click="powerOff()">
           <v-icon icon="mdi-power" size="20" />
         </button>
@@ -130,7 +277,9 @@ onKeyStroke('Escape', () => {
               running: !!item.panel && panels[item.panel],
               docked: !!item.panel && docked[item.panel],
               dragging: draggingId === item.id,
+              bouncing: bouncingId === item.id,
             }"
+            :style="draggingId === item.id ? `--dx:${dragDx}px` : undefined"
             type="button"
             :data-item-id="item.id"
             :aria-label="item.label"
@@ -139,6 +288,7 @@ onKeyStroke('Escape', () => {
             @pointermove="moveItem"
             @pointerup="endItemDrag"
             @pointercancel="endItemDrag"
+            @animationend="bouncingId = null"
             @click="activate(item)"
           >
             <v-icon :icon="item.icon" size="20" />
@@ -164,7 +314,8 @@ onKeyStroke('Escape', () => {
 <style scoped>
 /* ---------------------------------- 任务栏 --------------------------------- */
 
-/* 贴在左下角，80% 透明（只留两成白），靠更厚的背景模糊顶住可读性 */
+/* 贴在左下角：M3 厚玻璃。背景、模糊、圆角、阴影全部交给 .glass-dense，
+   这里只管布局与位置——材质不再被组件覆盖，设置里的模糊/圆角滑块才管得住它 */
 .taskbar {
   position: fixed;
   left: 24px;
@@ -172,14 +323,10 @@ onKeyStroke('Escape', () => {
   z-index: 80;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(30px) saturate(170%);
-  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3);
   user-select: none;
-  transition: transform 0.34s cubic-bezier(0.22, 0.8, 0.24, 1);
+  transition: transform var(--dur-4) var(--spring-settle);
 }
 
 
@@ -225,30 +372,43 @@ onKeyStroke('Escape', () => {
   display: grid;
   place-items: center;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: 50%;
   background: transparent;
   color: var(--text);
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
+/* hover-lift：抬起来并轻微放大 */
 .tb-btn:hover {
-  background: rgba(255, 255, 255, 0.95);
-  border-color: var(--ink-line);
+  background: var(--glass-solid);
+  border-color: var(--glass-edge-strong);
+  box-shadow: var(--shadow-1);
+  transform: translateY(-2px) scale(1.05);
 }
 
+/* press-squash：按下去压扁，松手弹回过冲 */
+.tb-btn:active {
+  transform: scale(0.92);
+  transition-duration: var(--dur-1);
+}
+
+/* 运行中：底部一颗小圆点，visionOS 的"在线"标记语言 */
 .tb-btn.running::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
-  width: 14px;
-  height: 3px;
-  border-radius: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
   background: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
 .tb-search {
@@ -257,18 +417,28 @@ onKeyStroke('Escape', () => {
   gap: 7px;
   height: 40px;
   padding: 0 16px;
-  border: 1px solid var(--ink-line);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-pill);
+  background: var(--glass-thin);
   color: var(--text);
   font-family: var(--body-font);
-  font-size: 12.5px;
+  font-size: var(--fs-label);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
 }
 
 .tb-search:hover {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--glass-solid);
+  box-shadow: var(--shadow-1);
+  transform: scale(1.04);
+}
+
+.tb-search:active {
+  transform: scale(0.95);
+  transition-duration: var(--dur-1);
 }
 
 .tb-btn.docked {
@@ -285,15 +455,30 @@ onKeyStroke('Escape', () => {
   width: 34px;
   height: 34px;
   margin-inline: 2px 4px;
+  padding: 0;
   overflow: hidden;
-  border: 1px solid var(--ink-line);
+  border: 1px solid var(--glass-edge-strong);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--glass-solid);
   color: var(--text);
   font-family: var(--display-font);
-  font-size: 13px;
-  font-weight: 700;
-  animation: rise-account 0.34s cubic-bezier(0.16, 0.84, 0.28, 1) both;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  animation: rise-account var(--dur-4) var(--spring-out) both;
+  transition:
+    box-shadow var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
+}
+
+.tb-avatar:hover {
+  box-shadow: 0 0 0 2px var(--glass-edge-strong);
+  transform: scale(1.08);
+}
+
+.tb-avatar:active {
+  transform: scale(0.94);
+  transition-duration: var(--dur-1);
 }
 
 .tb-avatar img {
@@ -302,10 +487,309 @@ onKeyStroke('Escape', () => {
   height: 100%;
 }
 
+/* ---------------------------- 账号切换 / 新增面板 ---------------------------- */
+
+.tb-users {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 228px;
+  /* 账号少时也留出足够高度，新增卡片盖上去才放得下 */
+  min-height: 150px;
+  padding: 8px;
+  border-radius: var(--r-card);
+  animation: rise-account var(--dur-3) var(--spring-out) both;
+}
+
+/* 面板本体：新增弹框打开时整体虚化，把焦点让给上面那张卡片。
+   用 opacity + scale 而不是 filter: blur——动画 filter 会触发逐帧重绘 */
+.tb-users-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition:
+    opacity var(--dur-3) var(--spring-settle),
+    transform var(--dur-3) var(--spring-settle);
+}
+
+.tb-users.is-blurred .tb-users-body {
+  opacity: 0.3;
+  transform: scale(0.98);
+  pointer-events: none;
+  user-select: none;
+}
+
+.tb-users-title {
+  margin: 2px 8px 6px;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+}
+
+/* 每一行账号：可选中的名称区 + 右侧删除叉号 */
+.tu-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle);
+}
+
+.tu-item:hover {
+  background: var(--glass-thin);
+  border-color: var(--glass-edge);
+}
+
+.tu-item.on {
+  background: color-mix(in srgb, var(--accent) 14%, var(--glass-base));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--glass-edge));
+}
+
+.tu-pick {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 4px 6px 8px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--body-font);
+  font-size: var(--fs-label);
+  text-align: start;
+  cursor: pointer;
+}
+
+/* 删除叉号：安静地待在右侧，悬浮才亮成红色 */
+.tu-del {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-inline-end: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.5;
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    color var(--dur-2) var(--spring-settle),
+    opacity var(--dur-2) var(--spring-settle);
+}
+
+.tu-del:hover {
+  background: var(--danger);
+  color: var(--on-danger);
+  opacity: 1;
+}
+
+.tu-avatar {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border: 1px solid var(--glass-edge-strong);
+  border-radius: 50%;
+  background: var(--glass-solid);
+  font-family: var(--display-font);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-bold);
+}
+
+.tu-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tu-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tu-role {
+  margin-inline-start: auto;
+  flex: 0 0 auto;
+  font-size: var(--fs-micro);
+  color: var(--text-muted);
+}
+
+/* 新增账号：与账号行同款，但用强调色标出 */
+.tu-add {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin-top: 3px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--accent-deep);
+  font-family: var(--body-font);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semi);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    border-color var(--dur-2) var(--spring-settle);
+}
+
+.tu-add:hover {
+  background: var(--glass-thin);
+  border-color: var(--glass-edge);
+}
+
+.tu-add :deep(.v-icon) {
+  opacity: 0.9;
+}
+
+/* -------------------------- 新增账号：卡片式浮层 -------------------------- */
+
+/* 盖住账号面板 8 成区域的一张小卡片；背后面板自身模糊，焦点全交给它 */
+.ud {
+  position: absolute;
+  inset: 10%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--glass-edge-strong);
+  border-radius: var(--r-card);
+  background: var(--glass-solid);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.55));
+  box-shadow: var(--shadow-2);
+  animation: ud-in var(--dur-3) var(--spring-jelly) both;
+}
+
+.ud-title {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+}
+
+.ud-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-control);
+  background: var(--glass-thin);
+  color: var(--text);
+  font-family: var(--body-font);
+  font-size: var(--fs-label);
+  transition:
+    box-shadow var(--dur-2) var(--spring-settle),
+    background-color var(--dur-2) var(--spring-settle);
+}
+
+.ud-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ud-input:focus {
+  outline: none;
+  background: var(--glass-solid);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.ud-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ud-btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-pill);
+  background: var(--glass-thin);
+  color: var(--text);
+  font-family: var(--body-font);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    opacity var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
+}
+
+.ud-btn:hover {
+  background: var(--glass-solid);
+  box-shadow: var(--shadow-1);
+}
+
+.ud-btn:active {
+  transform: scale(0.95);
+  transition-duration: var(--dur-1);
+}
+
+.ud-btn.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.ud-btn.primary:hover {
+  background: var(--accent-deep);
+}
+
+.ud-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@keyframes ud-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.udfade-enter-active,
+.udfade-leave-active {
+  transition: opacity var(--dur-3) var(--spring-settle);
+}
+
+.udfade-enter-from,
+.udfade-leave-to {
+  opacity: 0;
+}
+
 .tb-power {
   width: 38px;
   height: 38px;
-  animation: rise-account 0.34s cubic-bezier(0.16, 0.84, 0.28, 1) 0.04s both;
+  animation: rise-account var(--dur-4) var(--spring-out) 0.04s both;
 }
 
 @keyframes rise-account {
@@ -354,17 +838,43 @@ onKeyStroke('Escape', () => {
   user-select: none;
 }
 
+/* 拖动中：只沿 X 轴跟手（--dx 由脚本给出），抬起放大一点浮起来 */
 .tb-item.dragging {
+  z-index: 2;
   cursor: grabbing;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass-solid);
   border-color: var(--accent);
-  transform: scale(1.08);
-  box-shadow: 0 8px 18px rgba(140, 100, 30, 0.28);
+  transform: translateX(var(--dx, 0px)) scale(1.08);
+  box-shadow: var(--shadow-2);
+  transition: none;
 }
 
 /* 换位时按钮滑向新槽位，看起来就是"吸附拼接" */
 .tb-move {
-  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform var(--dur-2) var(--spring-settle);
+}
+
+/* 点击应用：图标原地跳一下再落回 */
+@keyframes tb-bounce {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-9px) scale(1.14);
+  }
+  55% {
+    transform: translateY(0) scale(0.95);
+  }
+  75% {
+    transform: translateY(-3px) scale(1.05);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tb-item.bouncing {
+  animation: tb-bounce var(--dur-5) var(--spring-jelly);
 }
 
 /* ------------------------------- 音乐律动 ------------------------------- */
@@ -376,13 +886,28 @@ onKeyStroke('Escape', () => {
   height: 40px;
   max-width: 148px;
   margin-inline-start: 4px;
-  padding: 0 12px;
-  border: 1px solid var(--ink-line);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.55);
+  padding: 0 14px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-pill);
+  background: var(--glass-thin);
   color: var(--text);
   font-family: var(--body-font);
   cursor: pointer;
+  transition:
+    background-color var(--dur-2) var(--spring-settle),
+    box-shadow var(--dur-2) var(--spring-settle),
+    transform var(--dur-2) var(--spring-jelly);
+}
+
+.tb-eq:hover {
+  background: var(--glass-solid);
+  box-shadow: var(--shadow-1);
+  transform: scale(1.04);
+}
+
+.tb-eq:active {
+  transform: scale(0.95);
+  transition-duration: var(--dur-1);
 }
 
 .tb-eq-bars {
@@ -399,7 +924,7 @@ onKeyStroke('Escape', () => {
   background: var(--accent);
   transform: scaleY(0.3);
   transform-origin: bottom;
-  animation: tb-eq 0.9s ease-in-out infinite;
+  animation: tb-eq 0.9s var(--ease-loop) infinite;
 }
 
 .tb-eq-bars i:nth-child(2) {
@@ -426,7 +951,7 @@ onKeyStroke('Escape', () => {
 
 .tb-eq-title {
   overflow: hidden;
-  font-size: 11.5px;
+  font-size: var(--fs-caption);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
