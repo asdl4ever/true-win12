@@ -64,6 +64,8 @@ export const games: GameEntry[] = [
   },
 ]
 
+export type PowerState = 'boot' | 'on' | 'shutdown' | 'off'
+
 export type AppEntry = {
   id: string
   label: string
@@ -136,9 +138,23 @@ export const useDesktopStore = defineStore('desktop', () => {
   })
   let topZ = 15
 
+  /* 收到桌面右侧的窗口：窗口保持挂载（游戏进度不丢），只是不可见 */
+  const docked = ref<Record<PanelId, boolean>>({
+    explorer: false,
+    settings: false,
+    widget: false,
+    store: false,
+    arcade: false,
+  })
+
   /** 正在运行的应用 = 开着窗口的应用，也是任务视图里的大卡片 */
   const openPanels = computed(() =>
     (Object.keys(panels.value) as PanelId[]).filter((id) => panels.value[id]),
+  )
+
+  /** 右侧图标栏里排队的窗口 */
+  const dockedPanels = computed(() =>
+    (Object.keys(docked.value) as PanelId[]).filter((id) => docked.value[id] && panels.value[id]),
   )
 
   /** 层级最高的那个就是当前窗口 */
@@ -148,10 +164,40 @@ export const useDesktopStore = defineStore('desktop', () => {
 
   function openPanel(id: PanelId) {
     panels.value[id] = true
+    docked.value[id] = false
   }
 
-  function togglePanel(id: PanelId) {
-    panels.value[id] = !panels.value[id]
+  /** 收到桌面右侧的小图标栏 */
+  function dockPanel(id: PanelId) {
+    if (!panels.value[id]) return
+    docked.value[id] = true
+    startOpen.value = false
+  }
+
+  /** 从小图标栏呼出 */
+  function restorePanel(id: PanelId) {
+    if (!panels.value[id]) {
+      openPanel(id)
+      return
+    }
+    docked.value[id] = false
+    startOpen.value = false
+    taskViewOpen.value = false
+    raise(id)
+  }
+
+  /** 任务栏图标：没开就打开，收起了就呼出，开着就收到右侧 */
+  function toggleDock(id: PanelId) {
+    if (!panels.value[id]) {
+      openPanel(id)
+      raise(id)
+      return
+    }
+    if (docked.value[id]) {
+      restorePanel(id)
+      return
+    }
+    dockPanel(id)
   }
 
   /** 点击时置顶，避免各窗口用样式里的固定层级互相压住 */
@@ -270,6 +316,38 @@ export const useDesktopStore = defineStore('desktop', () => {
     }
   })
 
+  /* -------------------------------- 开关机 -------------------------------- */
+
+  const power = ref<PowerState>('boot')
+  let powerTimer: number | undefined
+
+  function schedulePower(next: PowerState, delay: number) {
+    window.clearTimeout(powerTimer)
+    powerTimer = window.setTimeout(() => {
+      power.value = next
+    }, delay)
+  }
+
+  /** 按下电源键：先放开机动画，再进桌面 */
+  function powerOn() {
+    startOpen.value = false
+    taskViewOpen.value = false
+    power.value = 'boot'
+    schedulePower('on', 2600)
+  }
+
+  /** 关机：先播关机动画，再停在已关机画面 */
+  function powerOff() {
+    if (power.value !== 'on') return
+    startOpen.value = false
+    taskViewOpen.value = false
+    power.value = 'shutdown'
+    schedulePower('off', 1800)
+  }
+
+  /* 打开页面先走一遍开机流程 */
+  schedulePower('on', 2600)
+
   /* -------------------------------- 任务视图 ------------------------------- */
 
   const taskViewOpen = ref(false)
@@ -292,10 +370,14 @@ export const useDesktopStore = defineStore('desktop', () => {
     panels,
     positions,
     zIndexes,
+    docked,
     openPanels,
+    dockedPanels,
     frontPanel,
     openPanel,
-    togglePanel,
+    dockPanel,
+    restorePanel,
+    toggleDock,
     raise,
     placeWindow,
     accent,
@@ -317,6 +399,9 @@ export const useDesktopStore = defineStore('desktop', () => {
     installGame,
     uninstallGame,
     playGame,
+    power,
+    powerOn,
+    powerOff,
     taskViewOpen,
     openTaskView,
     closeTaskView,

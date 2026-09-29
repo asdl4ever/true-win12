@@ -4,9 +4,11 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import Arcade from './Arcade.vue'
 import GameStore from './GameStore.vue'
 import GlassWindow from './GlassWindow.vue'
+import PowerScreen from './PowerScreen.vue'
 import TaskView from './TaskView.vue'
 import {
   games,
+  PANEL_ICON,
   PANEL_LABEL,
   useDesktopStore,
   type AppEntry,
@@ -31,14 +33,20 @@ const {
   taskViewOpen,
   activeGame,
   launchableApps,
+  docked,
+  dockedPanels,
+  power,
 } = storeToRefs(desktop)
 const {
   notify,
   raise,
-  togglePanel,
+  dockPanel,
+  restorePanel,
+  toggleDock,
   openPanel,
   toggleTaskView,
   playGame,
+  powerOff,
   placeWindow: clampPlacement,
 } = desktop
 const accents = desktop.accents
@@ -131,7 +139,7 @@ function moveWindow(panel: PanelId, event: KeyboardEvent) {
 function winBindings(panel: PanelId) {
   const pos = positions.value[panel]
   return {
-    class: { dragging: dragging.value === panel },
+    class: { dragging: dragging.value === panel, docked: docked.value[panel] },
     style: {
       left: pos ? `${pos.x}px` : undefined,
       top: pos ? `${pos.y}px` : undefined,
@@ -363,7 +371,7 @@ function openApp(app: AppEntry) {
 </script>
 
 <template>
-  <v-app class="desktop" :style="tokens">
+  <v-app class="desktop" :class="{ ready: power === 'on' }" :style="tokens">
     <div class="glow" aria-hidden="true"></div>
 
     <main class="desk" @click="selected = null">
@@ -389,6 +397,7 @@ function openApp(app: AppEntry) {
             title="文件资源管理器"
             icon="mdi-folder-outline"
             @close="panels.explorer = false"
+            @minimize="dockPanel('explorer')"
           >
             <div class="explorer">
               <nav class="ex-side">
@@ -454,6 +463,7 @@ function openApp(app: AppEntry) {
             title="设置 · 个性化"
             icon="mdi-cog-outline"
             @close="panels.settings = false"
+            @minimize="dockPanel('settings')"
           >
             <div class="settings">
               <p class="set-note">调整外观，桌面上的玻璃卡片会立刻跟着变。</p>
@@ -526,6 +536,7 @@ function openApp(app: AppEntry) {
             title="小组件"
             icon="mdi-view-dashboard-outline"
             @close="panels.widget = false"
+            @minimize="dockPanel('widget')"
           >
             <div class="widget">
               <p class="clock">
@@ -586,6 +597,7 @@ function openApp(app: AppEntry) {
             title="应用商店"
             icon="mdi-storefront-outline"
             @close="panels.store = false"
+            @minimize="dockPanel('store')"
           >
             <GameStore />
           </GlassWindow>
@@ -598,6 +610,7 @@ function openApp(app: AppEntry) {
             :title="arcadeTitle"
             icon="mdi-gamepad-variant-outline"
             @close="panels.arcade = false"
+            @minimize="dockPanel('arcade')"
           >
             <Arcade />
           </GlassWindow>
@@ -641,19 +654,19 @@ function openApp(app: AppEntry) {
       </button>
       <button
         class="tb-btn"
-        :class="{ running: panels.explorer }"
+        :class="{ running: panels.explorer, docked: docked.explorer }"
         type="button"
         aria-label="文件资源管理器"
-        @click="togglePanel('explorer')"
+        @click="toggleDock('explorer')"
       >
         <v-icon icon="mdi-folder-outline" size="20" />
       </button>
       <button
         class="tb-btn"
-        :class="{ running: panels.store }"
+        :class="{ running: panels.store, docked: docked.store }"
         type="button"
         aria-label="应用商店"
-        @click="togglePanel('store')"
+        @click="toggleDock('store')"
       >
         <v-icon icon="mdi-storefront-outline" size="20" />
       </button>
@@ -662,10 +675,10 @@ function openApp(app: AppEntry) {
       </button>
       <button
         class="tb-btn"
-        :class="{ running: panels.settings }"
+        :class="{ running: panels.settings, docked: docked.settings }"
         type="button"
         aria-label="设置"
-        @click="togglePanel('settings')"
+        @click="toggleDock('settings')"
       >
         <v-icon icon="mdi-cog-outline" size="20" />
       </button>
@@ -683,6 +696,27 @@ function openApp(app: AppEntry) {
         </button>
       </div>
     </footer>
+
+    <!-- 收到桌面右侧的应用：小图标，点一下就呼出 -->
+    <TransitionGroup
+      v-if="dockedPanels.length"
+      name="dock"
+      tag="aside"
+      class="dock glass glass-dense"
+      aria-label="已收起的应用"
+    >
+      <button
+        v-for="panel in dockedPanels"
+        :key="panel"
+        class="dock-item"
+        type="button"
+        :title="`呼出 ${PANEL_LABEL[panel]}`"
+        :aria-label="`呼出 ${PANEL_LABEL[panel]}`"
+        @click="restorePanel(panel)"
+      >
+        <v-icon :icon="PANEL_ICON[panel]" size="20" />
+      </button>
+    </TransitionGroup>
 
     <div v-if="startOpen" class="scrim" @click="startOpen = false"></div>
 
@@ -732,7 +766,7 @@ function openApp(app: AppEntry) {
             variant="text"
             size="small"
             aria-label="关机"
-            @click="notify('锁定屏幕需要管理员权限')"
+            @click="powerOff()"
           />
         </div>
       </section>
@@ -751,6 +785,8 @@ function openApp(app: AppEntry) {
     >
       {{ toastText }}
     </v-snackbar>
+
+    <PowerScreen />
   </v-app>
 </template>
 
@@ -790,8 +826,12 @@ function openApp(app: AppEntry) {
   flex-direction: column;
   gap: 4px;
   width: 88px;
-  animation: rise 0.85s cubic-bezier(0.16, 0.84, 0.28, 1) both;
   animation-delay: 0.44s;
+}
+
+/* 桌面入场动画等开机画面退场后再播 */
+.desktop.ready .desk-icons {
+  animation: rise 0.85s cubic-bezier(0.16, 0.84, 0.28, 1) both;
 }
 
 .desk-icon {
@@ -834,11 +874,38 @@ function openApp(app: AppEntry) {
 .win {
   position: absolute;
   z-index: 10;
-  animation: rise 0.9s cubic-bezier(0.16, 0.84, 0.28, 1) both;
   animation-delay: var(--d, 0s);
   transition:
     left 0.18s ease,
-    top 0.18s ease;
+    top 0.18s ease,
+    scale 0.26s cubic-bezier(0.2, 0.8, 0.2, 1),
+    translate 0.26s cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 0s;
+}
+
+.desktop.ready .win {
+  animation: rise 0.9s cubic-bezier(0.16, 0.84, 0.28, 1) both;
+}
+
+/* 收到右侧：向右缩小淡出，再把可见性关掉（组件保持挂载，游戏进度不丢）。
+   淡出放在子卡片上——外层 .win 的入场动画锁住了它自己的 opacity，会盖掉这里的过渡 */
+.win.docked {
+  scale: 0.9;
+  translate: 30px 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    scale 0.26s cubic-bezier(0.2, 0.8, 0.2, 1),
+    translate 0.26s cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 0.26s;
+}
+
+.win > .glass-window {
+  transition: opacity 0.2s ease;
+}
+
+.win.docked > .glass-window {
+  opacity: 0;
 }
 
 @keyframes rise {
@@ -1250,8 +1317,11 @@ function openApp(app: AppEntry) {
   transform: translateX(-50%);
   user-select: none;
   transition: transform 0.34s cubic-bezier(0.22, 0.8, 0.24, 1);
-  animation: rise-bar 0.85s cubic-bezier(0.16, 0.84, 0.28, 1) both;
   animation-delay: 0.52s;
+}
+
+.desktop.ready .taskbar {
+  animation: rise-bar 0.85s cubic-bezier(0.16, 0.84, 0.28, 1) both;
 }
 
 /* 入场只动 translate，把 transform 留给拖拽与收起 */
@@ -1381,9 +1451,66 @@ function openApp(app: AppEntry) {
   color: var(--text-muted);
 }
 
+.tb-btn.docked {
+  opacity: 0.55;
+}
+
 .tb-bell {
   width: 34px;
   height: 34px;
+}
+
+/* ------------------------------ 桌面右侧的收起栏 ----------------------------- */
+
+.dock {
+  position: fixed;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 72;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 7px;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.dock-item {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.dock-item:hover {
+  border-color: var(--ink-line);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.dock-enter-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dock-leave-active {
+  transition:
+    opacity 0.16s ease,
+    transform 0.18s ease;
+}
+
+.dock-enter-from,
+.dock-leave-to {
+  opacity: 0;
+  transform: translateX(26px) scale(0.8);
 }
 
 /* --------------------------------- 开始菜单 -------------------------------- */

@@ -64,15 +64,14 @@ function pickTab(id: TabId) {
 
 <template>
   <div class="store">
-    <!-- 左上角：当前用户 -->
-    <div class="store-account">
-      <span class="store-avatar">{{ user.initial }}</span>
-      <span class="store-who">{{ user.name }}</span>
-    </div>
+    <!-- 顶栏：左上角用户 + 头像右边（与右栏对齐）的搜索栏与图标 -->
+    <div class="store-top" :class="{ searching: searchOpen }">
+      <div class="store-account">
+        <span class="store-avatar">{{ user.initial }}</span>
+        <span class="store-who">{{ user.name }}</span>
+      </div>
 
-    <!-- 头像右边（与右栏对齐）：搜索栏 + 视图图标 -->
-    <div class="store-tools">
-      <div class="store-search" :class="{ on: searchOpen }">
+      <div class="store-search">
         <v-text-field
           ref="searchField"
           v-model="query"
@@ -302,19 +301,31 @@ function pickTab(id: TabId) {
   padding: 14px 16px 16px;
 }
 
-.store-account,
-.store-tools,
+.store-top,
 .store-results {
   /* 顶栏与结果面板要压在遮罩之上，保持清晰 */
   position: relative;
   z-index: 3;
 }
 
+/* 顶栏横跨整行：搜索收起时与右栏左边缘对齐，展开时拉长到顶栏 80% */
+.store-top {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+}
+
 .store-account {
+  flex: 0 0 calc(30% + 10px);
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 9px;
-  min-width: 0;
+  transition: flex-basis 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.store-top.searching .store-account {
+  flex-basis: 34px;
 }
 
 .store-avatar {
@@ -338,23 +349,23 @@ function pickTab(id: TabId) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: opacity 0.24s ease;
 }
 
-.store-tools {
-  display: flex;
-  align-items: center;
+.store-top.searching .store-who {
+  opacity: 0;
 }
 
-/* 收起时是窄搜索框，点开后展开铺满右栏宽度 */
+/* 收起时是窄搜索框，点开后拉长到顶栏宽度的 80% */
 .store-search {
   position: relative;
-  width: 200px;
+  flex: 0 0 200px;
   max-width: 100%;
-  transition: width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: flex-basis 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.store-search.on {
-  width: 100%;
+.store-top.searching .store-search {
+  flex-basis: 80%;
 }
 
 .store-clear {
@@ -379,7 +390,7 @@ function pickTab(id: TabId) {
 
 .store-tool {
   flex: 0 0 auto;
-  margin-inline-start: 8px;
+  margin-inline-start: auto;
   width: 34px;
   height: 34px;
   display: grid;

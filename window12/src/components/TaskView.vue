@@ -11,7 +11,7 @@ import {
 } from '../stores/desktop'
 
 const desktop = useDesktopStore()
-const { openPanels, panels, frontPanel, launchableApps, activeGame } = storeToRefs(desktop)
+const { openPanels, panels, docked, frontPanel, launchableApps, activeGame } = storeToRefs(desktop)
 
 function isRunning(app: AppEntry) {
   if (app.game) return panels.value.arcade && activeGame.value === app.game
@@ -30,8 +30,14 @@ function panelTitle(panel: PanelId) {
   return PANEL_LABEL[panel]
 }
 
+/* 大卡片的状态：当前窗口 / 已收到右侧 / 在后台 */
+function panelState(panel: PanelId) {
+  if (docked.value[panel]) return '已收到右侧'
+  return panel === frontPanel.value ? '当前窗口' : '在后台'
+}
+
 function focusPanel(panel: PanelId) {
-  desktop.raise(panel)
+  desktop.restorePanel(panel)
   desktop.closeTaskView()
 }
 
@@ -80,7 +86,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
           role="group"
           tabindex="0"
           :style="{ '--d': `${index * 0.05}s` }"
-          :aria-label="`${panelTitle(panel)}，${panel === frontPanel ? '当前窗口' : '在后台'}，回车切到前台`"
+          :aria-label="`${panelTitle(panel)}，${panelState(panel)}，回车切到前台`"
           @click="focusPanel(panel)"
           @keydown.enter.prevent="focusPanel(panel)"
           @keydown.space.prevent="focusPanel(panel)"
@@ -98,8 +104,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
           </span>
           <h4 class="tv-card-title">{{ panelTitle(panel) }}</h4>
           <p class="tv-card-state">
-            <span v-if="panel === frontPanel" class="tv-dot"></span>
-            {{ panel === frontPanel ? '当前窗口' : '在后台' }}
+            <span v-if="panel === frontPanel && !docked[panel]" class="tv-dot"></span>
+            {{ panelState(panel) }}
           </p>
         </article>
       </div>

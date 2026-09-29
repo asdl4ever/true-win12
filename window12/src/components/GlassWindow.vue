@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
 /* 传入的 class（例如 glass-dense）要落到这张卡片上，交给 Transition 的根节点 */
 defineOptions({ inheritAttrs: false })
 
@@ -13,9 +11,7 @@ withDefaults(
   { open: true },
 )
 
-defineEmits<{ close: [] }>()
-
-const minimized = ref(false)
+defineEmits<{ close: []; minimize: [] }>()
 </script>
 
 <template>
@@ -28,20 +24,19 @@ const minimized = ref(false)
           <button
             class="win-btn"
             type="button"
-            :aria-label="minimized ? '展开窗口' : '最小化窗口'"
-            @click="minimized = !minimized"
+            title="收到桌面右侧"
+            aria-label="收到桌面右侧"
+            @click="$emit('minimize')"
           >
-            <v-icon :icon="minimized ? 'mdi-window-restore' : 'mdi-window-minimize'" size="12" />
+            <v-icon icon="mdi-window-minimize" size="12" />
           </button>
           <button class="win-btn close" type="button" aria-label="关闭窗口" @click="$emit('close')">
             <v-icon icon="mdi-close" size="13" />
           </button>
         </div>
       </header>
-      <div class="win-body" :class="{ 'is-minimized': minimized }">
-        <div class="win-body-inner">
-          <slot />
-        </div>
+      <div class="win-body">
+        <slot />
       </div>
     </div>
   </Transition>
@@ -74,21 +69,8 @@ const minimized = ref(false)
   transform: scale(0.95) translateY(8px);
 }
 
-/* 最小化 / 还原：按内容实际高度折叠 */
 .win-body {
-  display: grid;
-  grid-template-rows: 1fr;
   min-height: 0;
-  transition: grid-template-rows 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.win-body.is-minimized {
-  grid-template-rows: 0fr;
-}
-
-.win-body-inner {
-  min-height: 0;
-  overflow: hidden;
 }
 
 .win-bar {

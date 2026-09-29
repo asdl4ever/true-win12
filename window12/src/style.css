@@ -67,6 +67,12 @@ body {
   outline-offset: 2px;
 }
 
+/* 文本输入框不再画默认的深色方框（点击聚焦时浏览器也会判定为 :focus-visible） */
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
 ::selection {
   background: color-mix(in srgb, var(--accent) 26%, transparent);
 }
@@ -162,6 +168,11 @@ body {
   text-transform: none;
   letter-spacing: 0.1px;
   font-weight: 500;
+}
+
+/* 聚焦提示改用柔光，不画边框 */
+.glass-field .v-field:has(input:focus) {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 /* ------------------------------ 无障碍动效 ------------------------------ */
