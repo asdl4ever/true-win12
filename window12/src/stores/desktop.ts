@@ -1,94 +1,16 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
-
-export type PanelId = 'explorer' | 'settings' | 'widget' | 'store' | 'arcade'
-
-export const PANEL_LABEL: Record<PanelId, string> = {
-  explorer: '文件资源管理器',
-  settings: '设置 · 个性化',
-  widget: '小组件',
-  store: '应用商店',
-  arcade: '游戏',
-}
-
-export const PANEL_ICON: Record<PanelId, string> = {
-  explorer: 'mdi-folder-outline',
-  settings: 'mdi-cog-outline',
-  widget: 'mdi-view-dashboard-outline',
-  store: 'mdi-storefront-outline',
-  arcade: 'mdi-gamepad-variant-outline',
-}
-
-export type GameEntry = {
-  id: string
-  name: string
-  icon: string
-  category: string
-  size: string
-  rating: number
-  developer: string
-  desc: string
-}
-
-/* 商店里的游戏目录：都是经典玩法，源码就在 components/games 下 */
-export const games: GameEntry[] = [
-  {
-    id: 'snake',
-    name: '贪吃蛇',
-    icon: 'mdi-snake',
-    category: '街机',
-    size: '1.2 MB',
-    rating: 4.7,
-    developer: 'Window 12 实验室',
-    desc: '方向键控制，吃到果实变长，别撞墙也别咬到自己。',
-  },
-  {
-    id: 'whack',
-    name: '打地鼠',
-    icon: 'mdi-hammer',
-    category: '休闲',
-    size: '0.8 MB',
-    rating: 4.5,
-    developer: 'Window 12 实验室',
-    desc: '30 秒内敲中尽可能多的地鼠，手越快它冒头越快。',
-  },
-  {
-    id: '2048',
-    name: '2048',
-    icon: 'mdi-grid',
-    category: '益智',
-    size: '1.0 MB',
-    rating: 4.8,
-    developer: 'Window 12 实验室',
-    desc: '方向键合并相同数字，一路凑到 2048。',
-  },
-]
-
-export type PowerState = 'boot' | 'on' | 'shutdown' | 'off'
-
-export type AppEntry = {
-  id: string
-  label: string
-  icon: string
-  /* 有 panel 的才会真的开出一个窗口 */
-  panel: PanelId | null
-  /* 安装了才出现的游戏入口 */
-  game?: string
-}
-
-/* 开始菜单与任务视图共用同一份应用清单 */
-export const apps: AppEntry[] = [
-  { id: 'explorer', label: '文件资源管理器', icon: 'mdi-folder-outline', panel: 'explorer' },
-  { id: 'store', label: '应用商店', icon: 'mdi-storefront-outline', panel: 'store' },
-  { id: 'settings', label: '设置', icon: 'mdi-cog-outline', panel: 'settings' },
-  { id: 'widget', label: '小组件', icon: 'mdi-view-dashboard-outline', panel: 'widget' },
-  { id: 'terminal', label: '终端', icon: 'mdi-console', panel: null },
-  { id: 'music', label: '音乐', icon: 'mdi-music', panel: null },
-  { id: 'photos', label: '照片', icon: 'mdi-image-outline', panel: null },
-]
-
-type Position = { x: number; y: number }
-type Size = { width: number; height: number }
+import { accounts } from '../data/accounts'
+import { apps, taskbarItems } from '../data/apps'
+import { games } from '../data/games'
+import type {
+  Account,
+  AppEntry,
+  PanelId,
+  Position,
+  PowerState,
+  WindowSize,
+} from '../types/desktop'
 
 const INSTALL_KEY = 'window12.installedGames'
 
@@ -114,27 +36,28 @@ function clamp(value: number, min: number, max: number) {
 export const useDesktopStore = defineStore('desktop', () => {
   /* --------------------------------- 窗口 --------------------------------- */
 
+  /* 开机进桌面时不预开任何窗口，全部由用户点开 */
   const panels = ref<Record<PanelId, boolean>>({
-    explorer: true,
-    settings: true,
-    widget: true,
+    explorer: false,
+    settings: false,
     store: false,
     arcade: false,
+    music: false,
   })
   /* null 表示还停在样式表给的初始位置 */
   const positions = ref<Record<PanelId, Position | null>>({
     explorer: null,
     settings: null,
-    widget: null,
     store: null,
     arcade: null,
+    music: null,
   })
   const zIndexes = ref<Record<PanelId, number>>({
     explorer: 10,
     settings: 12,
-    widget: 11,
     store: 13,
     arcade: 14,
+    music: 11,
   })
   let topZ = 15
 
@@ -142,9 +65,9 @@ export const useDesktopStore = defineStore('desktop', () => {
   const docked = ref<Record<PanelId, boolean>>({
     explorer: false,
     settings: false,
-    widget: false,
     store: false,
     arcade: false,
+    music: false,
   })
 
   /** 正在运行的应用 = 开着窗口的应用，也是任务视图里的大卡片 */
@@ -171,7 +94,7 @@ export const useDesktopStore = defineStore('desktop', () => {
   function dockPanel(id: PanelId) {
     if (!panels.value[id]) return
     docked.value[id] = true
-    startOpen.value = false
+    accountBarOpen.value = false
   }
 
   /** 从小图标栏呼出 */
@@ -181,7 +104,7 @@ export const useDesktopStore = defineStore('desktop', () => {
       return
     }
     docked.value[id] = false
-    startOpen.value = false
+    accountBarOpen.value = false
     taskViewOpen.value = false
     raise(id)
   }
@@ -206,7 +129,7 @@ export const useDesktopStore = defineStore('desktop', () => {
   }
 
   /** 位置以桌面左上角为原点，并约束在桌面范围内，防止卡片被拖出视野 */
-  function placeWindow(id: PanelId, x: number, y: number, size: Size, area: Size) {
+  function placeWindow(id: PanelId, x: number, y: number, size: WindowSize, area: WindowSize) {
     positions.value[id] = {
       x: clamp(x, 0, Math.max(0, area.width - size.width)),
       y: clamp(y, 0, Math.max(0, area.height - size.height)),
@@ -246,10 +169,22 @@ export const useDesktopStore = defineStore('desktop', () => {
   /* ---------------------------- 桌面图标与开始菜单 --------------------------- */
 
   const selectedIcon = ref<string | null>(null)
-  const startOpen = ref(false)
+  /* 任务栏的账号/电源态：点 Win 时任务栏内容整体换成头像与关机 */
+  const accountBarOpen = ref(false)
 
-  /* 当前登录用户：开始菜单与商店共用 */
-  const user = { name: '奶龙', initial: '奶' }
+  /* 当前登录账号：开始菜单与商店共用 */
+  const user = ref(accounts[0])
+
+  function switchUser(account: Account) {
+    if (account.id === user.value.id) {
+      notify(`${account.name} 已经在用了`)
+      return
+    }
+    user.value = account
+    /* 每个账号有自己的一套外观，切换后整桌主题跟着换 */
+    accent.value = account.accent
+    notify(`已切换到 ${account.name} 的桌面`)
+  }
 
   /* -------------------------------- 应用商店 ------------------------------- */
 
@@ -330,7 +265,7 @@ export const useDesktopStore = defineStore('desktop', () => {
 
   /** 按下电源键：先放开机动画，再进桌面 */
   function powerOn() {
-    startOpen.value = false
+    accountBarOpen.value = false
     taskViewOpen.value = false
     power.value = 'boot'
     schedulePower('on', 2600)
@@ -339,7 +274,7 @@ export const useDesktopStore = defineStore('desktop', () => {
   /** 关机：先播关机动画，再停在已关机画面 */
   function powerOff() {
     if (power.value !== 'on') return
-    startOpen.value = false
+    accountBarOpen.value = false
     taskViewOpen.value = false
     power.value = 'shutdown'
     schedulePower('off', 1800)
@@ -354,7 +289,8 @@ export const useDesktopStore = defineStore('desktop', () => {
 
   function openTaskView() {
     taskViewOpen.value = true
-    startOpen.value = false
+    accountBarOpen.value = false
+    searchOpen.value = false
     selectedIcon.value = null
   }
 
@@ -364,6 +300,34 @@ export const useDesktopStore = defineStore('desktop', () => {
 
   function toggleTaskView() {
     taskViewOpen.value ? closeTaskView() : openTaskView()
+  }
+
+  /* -------------------------------- 任务栏顺序 ------------------------------ */
+
+  /* 任务栏应用按钮的顺序：拖到哪个位置就吸附到哪 */
+  const taskbarOrder = ref<string[]>(taskbarItems.map((item) => item.id))
+
+  function moveTaskbarItem(id: string, index: number) {
+    const from = taskbarOrder.value.indexOf(id)
+    if (from < 0) return
+    const to = Math.min(Math.max(index, 0), taskbarOrder.value.length - 1)
+    if (from === to) return
+    taskbarOrder.value.splice(from, 1)
+    taskbarOrder.value.splice(to, 0, id)
+  }
+
+  /* -------------------------------- 搜索面板 ------------------------------- */
+
+  const searchOpen = ref(false)
+
+  function openSearch() {
+    accountBarOpen.value = false
+    taskViewOpen.value = false
+    searchOpen.value = true
+  }
+
+  function closeSearch() {
+    searchOpen.value = false
   }
 
   return {
@@ -390,8 +354,9 @@ export const useDesktopStore = defineStore('desktop', () => {
     toasting,
     notify,
     selectedIcon,
-    startOpen,
+    accountBarOpen,
     user,
+    switchUser,
     installedGames,
     installing,
     activeGame,
@@ -406,5 +371,10 @@ export const useDesktopStore = defineStore('desktop', () => {
     openTaskView,
     closeTaskView,
     toggleTaskView,
+    searchOpen,
+    openSearch,
+    closeSearch,
+    taskbarOrder,
+    moveTaskbarItem,
   }
 })

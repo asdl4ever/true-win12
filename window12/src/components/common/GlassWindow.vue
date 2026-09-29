@@ -50,23 +50,40 @@ defineEmits<{ close: []; minimize: [] }>()
   color: var(--text);
 }
 
-/* 打开 / 关闭：淡入淡出 + 轻微缩放，关闭比打开快一点 */
+/* 打开 / 关闭动画只碰 opacity 与 transform（合成层内完成，不掉帧）。
+   关键：动画期间摘掉 backdrop-filter —— 让浏览器对带背景模糊的元素逐帧重新采样
+   是最贵的一步，也是之前点 × 卡顿的原因；这 0.2 秒用一层稍实的白顶住观感。 */
+.win-fade-enter-active,
+.win-fade-leave-active {
+  will-change: opacity, transform;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(255, 253, 245, 0.66);
+  background-image: none;
+}
+
 .win-fade-enter-active {
   transition:
-    opacity 0.22s ease,
-    transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity 0.18s ease-out,
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .win-fade-leave-active {
   transition:
-    opacity 0.15s ease,
-    transform 0.18s cubic-bezier(0.4, 0, 1, 1);
+    opacity 0.24s ease-out,
+    transform 0.3s cubic-bezier(0.32, 0.72, 0.3, 1);
+  /* 阴影不单独改：跟随整体透明度一起淡出（瞬时改阴影会看到一下跳变） */
+  pointer-events: none;
 }
 
-.win-fade-enter-from,
+.win-fade-enter-from {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0) scale(0.96);
+}
+
 .win-fade-leave-to {
   opacity: 0;
-  transform: scale(0.95) translateY(8px);
+  transform: translate3d(0, 14px, 0) scale(0.94);
 }
 
 .win-body {

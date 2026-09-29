@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { computed, type Component } from 'vue'
-import { games, useDesktopStore } from '../stores/desktop'
+import { games } from '../../data/games'
+import { useDesktopStore } from '../../stores/desktop'
 import Game2048 from './games/Game2048.vue'
 import SnakeGame from './games/SnakeGame.vue'
 import WhackAMoleGame from './games/WhackAMoleGame.vue'

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { useDesktopStore } from '../stores/desktop'
+import { useDesktopStore } from '../../stores/desktop'
 
 const desktop = useDesktopStore()
 const { power } = storeToRefs(desktop)

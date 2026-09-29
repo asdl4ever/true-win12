@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed, nextTick, ref } from 'vue'
-import { games, useDesktopStore } from '../stores/desktop'
+import { computed, ref, watch } from 'vue'
+import { games } from '../../data/games'
+import { useDesktopStore } from '../../stores/desktop'
+import GlassSearch from '../common/GlassSearch.vue'
 
 const desktop = useDesktopStore()
-const { installedGames, installing } = storeToRefs(desktop)
-const user = desktop.user
+const { installedGames, installing, user } = storeToRefs(desktop)
+/* 头像是在线插画，取不到就退回姓氏 */
+const avatarOk = ref(true)
 
 type TabId = 'home' | 'manage'
 
@@ -22,7 +25,11 @@ const categories = ['全部', ...new Set(games.map((game) => game.category))]
 /* 搜索：点开后整块虚化，输入框展开并浮出结果 */
 const searchOpen = ref(false)
 const query = ref('')
-const searchField = ref<{ focus: () => void } | null>(null)
+
+/* 搜索只针对主页目录，展开时自动切回主页 */
+watch(searchOpen, (open) => {
+  if (open) tab.value = 'home'
+})
 
 const catalog = computed(() =>
   games.filter((game) => category.value === '全部' || game.category === category.value),
@@ -37,13 +44,6 @@ const totalSize = computed(() =>
 
 function progressOf(id: string) {
   return installing.value[id]
-}
-
-function openSearch() {
-  if (searchOpen.value) return
-  searchOpen.value = true
-  tab.value = 'home'
-  nextTick(() => searchField.value?.focus())
 }
 
 function closeSearch() {
@@ -67,36 +67,14 @@ function pickTab(id: TabId) {
     <!-- 顶栏：左上角用户 + 头像右边（与右栏对齐）的搜索栏与图标 -->
     <div class="store-top" :class="{ searching: searchOpen }">
       <div class="store-account">
-        <span class="store-avatar">{{ user.initial }}</span>
+        <span class="store-avatar">
+          <img v-if="avatarOk" :src="user.avatar" alt="" @error="avatarOk = false" />
+          <template v-else>{{ user.initial }}</template>
+        </span>
         <span class="store-who">{{ user.name }}</span>
       </div>
 
-      <div class="store-search">
-        <v-text-field
-          ref="searchField"
-          v-model="query"
-          class="glass-field"
-          density="compact"
-          hide-details
-          variant="solo"
-          flat
-          bg-color="rgba(255, 255, 255, 0.55)"
-          placeholder="搜索游戏"
-          prepend-inner-icon="mdi-magnify"
-          @focus="openSearch"
-          @click="openSearch"
-          @keydown.esc="closeSearch"
-        />
-        <button
-          v-if="searchOpen"
-          class="store-clear"
-          type="button"
-          aria-label="退出搜索"
-          @click="closeSearch"
-        >
-          <v-icon icon="mdi-close" size="14" />
-        </button>
-      </div>
+      <GlassSearch v-model="query" v-model:open="searchOpen" placeholder="搜索游戏" />
 
       <button
         class="store-tool"
@@ -245,41 +223,46 @@ function pickTab(id: TabId) {
     <section v-if="searchOpen" class="store-results" aria-label="搜索结果">
       <ul class="store-hits">
         <li v-for="game in results" :key="game.id" class="store-hit">
-          <span class="store-icon small">
-            <v-icon :icon="game.icon" size="20" />
+          <span class="store-icon">
+            <v-icon :icon="game.icon" size="24" />
           </span>
           <div class="store-meta">
             <h3 class="store-name">{{ game.name }}</h3>
-            <p class="store-sub">{{ game.developer }} · {{ game.size }} · ★ {{ game.rating.toFixed(1) }}</p>
+            <p class="store-sub">
+              {{ game.developer }} · {{ game.category }} · {{ game.size }} · ★
+              {{ game.rating.toFixed(1) }}
+            </p>
+            <p class="store-desc">{{ game.desc }}</p>
           </div>
 
-          <v-progress-linear
-            v-if="progressOf(game.id) !== undefined"
-            class="store-hit-bar"
-            :model-value="progressOf(game.id)"
-            height="4"
-            rounded
-            color="#3d2b0e"
-            bg-color="rgba(61, 43, 14, 0.16)"
-          />
-          <v-btn
-            v-else-if="installedGames.includes(game.id)"
-            class="store-get"
-            variant="flat"
-            size="small"
-            @click="openGame(game.id)"
-          >
-            打开
-          </v-btn>
-          <v-btn
-            v-else
-            class="store-get"
-            variant="flat"
-            size="small"
-            @click="desktop.installGame(game.id)"
-          >
-            获取
-          </v-btn>
+          <div class="store-action">
+            <template v-if="progressOf(game.id) !== undefined">
+              <v-progress-linear
+                :model-value="progressOf(game.id)"
+                height="5"
+                rounded
+                color="#3d2b0e"
+                bg-color="rgba(61, 43, 14, 0.16)"
+              />
+              <span class="store-pct">{{ progressOf(game.id) }}%</span>
+            </template>
+
+            <template v-else-if="installedGames.includes(game.id)">
+              <v-btn class="store-get" variant="flat" @click="openGame(game.id)">打开</v-btn>
+              <v-btn
+                class="store-del"
+                variant="text"
+                size="small"
+                @click="desktop.uninstallGame(game.id)"
+              >
+                卸载
+              </v-btn>
+            </template>
+
+            <v-btn v-else class="store-get" variant="flat" @click="desktop.installGame(game.id)">
+              获取
+            </v-btn>
+          </div>
         </li>
       </ul>
 
@@ -334,12 +317,20 @@ function pickTab(id: TabId) {
   place-items: center;
   width: 32px;
   height: 32px;
+  overflow: hidden;
+  border: 1px solid var(--ink-line);
   border-radius: 50%;
-  background: var(--accent);
-  color: #fffdf5;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
   font-family: var(--display-font);
   font-weight: 700;
   font-size: 14px;
+}
+
+.store-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .store-who {
@@ -357,35 +348,12 @@ function pickTab(id: TabId) {
 }
 
 /* 收起时是窄搜索框，点开后拉长到顶栏宽度的 80% */
-.store-search {
-  position: relative;
+.store-top .glass-search {
   flex: 0 0 200px;
-  max-width: 100%;
-  transition: flex-basis 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.store-top.searching .store-search {
+.store-top.searching .glass-search {
   flex-basis: 80%;
-}
-
-.store-clear {
-  position: absolute;
-  top: 50%;
-  inset-inline-end: 8px;
-  transform: translateY(-50%);
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(61, 43, 14, 0.14);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.store-clear:hover {
-  background: rgba(61, 43, 14, 0.24);
 }
 
 .store-tool {
@@ -409,6 +377,8 @@ function pickTab(id: TabId) {
 
 /* 左侧栏 */
 .store-side {
+  /* 显式占位，否则搜索结果插进 2/2 时会把右栏挤到第三行 */
+  grid-area: 2 / 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -452,8 +422,9 @@ function pickTab(id: TabId) {
   color: var(--text-muted);
 }
 
-/* 右栏 */
+/* 右栏：与搜索结果同格，搜索时被遮罩盖住 */
 .store-body {
+  grid-area: 2 / 2;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -528,12 +499,6 @@ function pickTab(id: TabId) {
   border-radius: 13px;
   background: color-mix(in srgb, var(--accent) 16%, rgba(255, 255, 255, 0.65));
   color: var(--accent);
-}
-
-.store-icon.small {
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
 }
 
 .store-meta {
@@ -647,6 +612,7 @@ function pickTab(id: TabId) {
   cursor: pointer;
 }
 
+/* 搜索结果铺满右半边（整列宽 + 整行高），卡片尺寸与目录一致 */
 .store-results {
   grid-area: 2 / 2;
   align-self: stretch;
@@ -661,22 +627,18 @@ function pickTab(id: TabId) {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .store-hit {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 11px 10px;
   border: 1px solid var(--ink-line);
-  border-radius: 13px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
   animation: hit-in 0.2s ease both;
-}
-
-.store-hit-bar {
-  flex: 0 0 64px;
 }
 
 @keyframes hit-in {
