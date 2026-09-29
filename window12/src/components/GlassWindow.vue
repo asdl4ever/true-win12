@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-defineProps<{
-  title: string
-  icon: string
-}>()
+/* 传入的 class（例如 glass-dense）要落到这张卡片上，交给 Transition 的根节点 */
+defineOptions({ inheritAttrs: false })
+
+withDefaults(
+  defineProps<{
+    open?: boolean
+    title: string
+    icon: string
+  }>(),
+  { open: true },
+)
 
 defineEmits<{ close: [] }>()
 
@@ -12,28 +19,32 @@ const minimized = ref(false)
 </script>
 
 <template>
-  <div class="glass-window glass">
-    <header class="win-bar">
-      <v-icon :icon="icon" size="15" class="win-app" />
-      <h2 class="win-title">{{ title }}</h2>
-      <div class="win-actions">
-        <button
-          class="win-btn"
-          type="button"
-          :aria-label="minimized ? '展开窗口' : '最小化窗口'"
-          @click="minimized = !minimized"
-        >
-          <v-icon :icon="minimized ? 'mdi-window-restore' : 'mdi-window-minimize'" size="12" />
-        </button>
-        <button class="win-btn close" type="button" aria-label="关闭窗口" @click="$emit('close')">
-          <v-icon icon="mdi-close" size="13" />
-        </button>
+  <Transition name="win-fade">
+    <div v-if="open" class="glass-window glass" v-bind="$attrs">
+      <header class="win-bar">
+        <v-icon :icon="icon" size="15" class="win-app" />
+        <h2 class="win-title">{{ title }}</h2>
+        <div class="win-actions">
+          <button
+            class="win-btn"
+            type="button"
+            :aria-label="minimized ? '展开窗口' : '最小化窗口'"
+            @click="minimized = !minimized"
+          >
+            <v-icon :icon="minimized ? 'mdi-window-restore' : 'mdi-window-minimize'" size="12" />
+          </button>
+          <button class="win-btn close" type="button" aria-label="关闭窗口" @click="$emit('close')">
+            <v-icon icon="mdi-close" size="13" />
+          </button>
+        </div>
+      </header>
+      <div class="win-body" :class="{ 'is-minimized': minimized }">
+        <div class="win-body-inner">
+          <slot />
+        </div>
       </div>
-    </header>
-    <div v-show="!minimized" class="win-body">
-      <slot />
     </div>
-  </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -42,6 +53,42 @@ const minimized = ref(false)
   flex-direction: column;
   overflow: hidden;
   color: var(--text);
+}
+
+/* 打开 / 关闭：淡入淡出 + 轻微缩放，关闭比打开快一点 */
+.win-fade-enter-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.win-fade-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.18s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.win-fade-enter-from,
+.win-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(8px);
+}
+
+/* 最小化 / 还原：按内容实际高度折叠 */
+.win-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-height: 0;
+  transition: grid-template-rows 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.win-body.is-minimized {
+  grid-template-rows: 0fr;
+}
+
+.win-body-inner {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .win-bar {

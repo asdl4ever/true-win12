@@ -202,6 +202,9 @@ export const useDesktopStore = defineStore('desktop', () => {
   const selectedIcon = ref<string | null>(null)
   const startOpen = ref(false)
 
+  /* 当前登录用户：开始菜单与商店共用 */
+  const user = { name: '奶龙', initial: '奶' }
+
   /* -------------------------------- 应用商店 ------------------------------- */
 
   const installedGames = ref<string[]>(readInstalled())
@@ -306,6 +309,7 @@ export const useDesktopStore = defineStore('desktop', () => {
     notify,
     selectedIcon,
     startOpen,
+    user,
     installedGames,
     installing,
     activeGame,

@@ -385,7 +385,7 @@ function openApp(app: AppEntry) {
       <section ref="stageEl" class="stage">
         <div class="win win-explorer" v-bind="winBindings('explorer')">
           <GlassWindow
-            v-if="panels.explorer"
+            :open="panels.explorer"
             title="文件资源管理器"
             icon="mdi-folder-outline"
             @close="panels.explorer = false"
@@ -450,7 +450,7 @@ function openApp(app: AppEntry) {
 
         <div class="win win-settings" v-bind="winBindings('settings')">
           <GlassWindow
-            v-if="panels.settings"
+            :open="panels.settings"
             title="设置 · 个性化"
             icon="mdi-cog-outline"
             @close="panels.settings = false"
@@ -522,7 +522,7 @@ function openApp(app: AppEntry) {
 
         <div class="win win-widget" v-bind="winBindings('widget')">
           <GlassWindow
-            v-if="panels.widget"
+            :open="panels.widget"
             title="小组件"
             icon="mdi-view-dashboard-outline"
             @close="panels.widget = false"
@@ -581,7 +581,7 @@ function openApp(app: AppEntry) {
 
         <div class="win win-store" v-bind="winBindings('store')">
           <GlassWindow
-            v-if="panels.store"
+            :open="panels.store"
             class="glass-dense"
             title="应用商店"
             icon="mdi-storefront-outline"
@@ -593,7 +593,7 @@ function openApp(app: AppEntry) {
 
         <div class="win win-arcade" v-bind="winBindings('arcade')">
           <GlassWindow
-            v-if="panels.arcade"
+            :open="panels.arcade"
             class="glass-dense"
             :title="arcadeTitle"
             icon="mdi-gamepad-variant-outline"
@@ -725,8 +725,8 @@ function openApp(app: AppEntry) {
         </ul>
 
         <div class="start-foot">
-          <span class="avatar">奶</span>
-          <span class="who">奶龙</span>
+          <span class="avatar">{{ desktop.user.initial }}</span>
+          <span class="who">{{ desktop.user.name }}</span>
           <v-btn
             icon="mdi-power"
             variant="text"
@@ -880,9 +880,9 @@ function openApp(app: AppEntry) {
 
 /* 商店与游戏默认不开，位置留给它们展开时用 */
 .win-store {
-  left: min(300px, 22vw);
+  left: min(300px, 20vw);
   top: 6%;
-  width: min(560px, 40vw);
+  width: min(620px, 44vw);
   z-index: 13;
   --d: 0.46s;
 }
