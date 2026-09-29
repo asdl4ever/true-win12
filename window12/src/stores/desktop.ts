@@ -14,6 +14,38 @@ import type {
 } from '../types/desktop'
 
 const INSTALL_KEY = 'window12.installedGames'
+const APPEARANCE_KEY = 'window12.appearance'
+
+type PersistedState = {
+  accent?: string
+  blur?: number
+  radius?: number
+  effects?: boolean
+  specular?: boolean
+  jelly?: number
+  userId?: string
+  accountList?: Account[]
+  taskbarOrder?: string[]
+}
+
+function readPersisted(): PersistedState {
+  try {
+    const raw = window.localStorage.getItem(APPEARANCE_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' ? (parsed as PersistedState) : {}
+  } catch {
+    return {}
+  }
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
+
+/** 读档时把不可信的数字收进合法区间，避免坏数据把界面搞崩 */
+function clampNum(value: unknown, min: number, max: number, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? clamp(value, min, max) : fallback
+}
 
 function readInstalled(): string[] {
   try {
@@ -23,10 +55,6 @@ function readInstalled(): string[] {
   } catch {
     return []
   }
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
 }
 
 /**
@@ -98,6 +126,12 @@ export const useDesktopStore = defineStore('desktop', () => {
     accountBarOpen.value = false
   }
 
+  /** 关掉窗口：与"收到右侧"不同，这是真的卸载 */
+  function closePanel(id: PanelId) {
+    panels.value[id] = false
+    docked.value[id] = false
+  }
+
   /** 从小图标栏呼出 */
   function restorePanel(id: PanelId) {
     if (!panels.value[id]) {
@@ -127,6 +161,19 @@ export const useDesktopStore = defineStore('desktop', () => {
   /** 点击时置顶，避免各窗口用样式里的固定层级互相压住 */
   function raise(id: PanelId) {
     zIndexes.value[id] = ++topZ
+  }
+
+  /** 键盘轮转窗口：按层级顺序在打开的窗口间前后切换，和系统里的窗口切换一致 */
+  function cyclePanel(dir: 1 | -1) {
+    const list = [...openPanels.value].sort((a, b) => zIndexes.value[b] - zIndexes.value[a])
+    if (!list.length) return
+    if (list.length === 1) {
+      restorePanel(list[0])
+      return
+    }
+    const current = list.indexOf(frontPanel.value)
+    const next = list[((current < 0 ? 0 : current) + dir + list.length) % list.length]
+    restorePanel(next)
   }
 
   /** 位置以桌面左上角为原点，并约束在桌面范围内，防止卡片被拖出视野 */
@@ -386,6 +433,58 @@ export const useDesktopStore = defineStore('desktop', () => {
     searchOpen.value = false
   }
 
+  /* ------------------------------ 持久化恢复 ------------------------------ */
+
+  /* 外观、账号、任务栏顺序都落盘：调了半天的主题不该刷新就回默认 */
+  function hydrate() {
+    const saved = readPersisted()
+
+    if (Array.isArray(saved.accountList) && saved.accountList.length) {
+      accountList.value = saved.accountList
+    }
+    const savedUser = accountList.value.find((item) => item.id === saved.userId)
+    if (savedUser) user.value = savedUser
+
+    applyAccent(typeof saved.accent === 'string' ? saved.accent : user.value.accent)
+    blur.value = clampNum(saved.blur, 8, 40, blur.value)
+    radius.value = clampNum(saved.radius, 8, 32, radius.value)
+    if (typeof saved.effects === 'boolean') effects.value = saved.effects
+    if (typeof saved.specular === 'boolean') specular.value = saved.specular
+    if (saved.jelly === 0 || saved.jelly === 0.5 || saved.jelly === 1) jelly.value = saved.jelly
+    if (Array.isArray(saved.taskbarOrder) && saved.taskbarOrder.length) {
+      const known = saved.taskbarOrder.filter((id) => taskbarItems.some((item) => item.id === id))
+      const missing = taskbarItems.map((item) => item.id).filter((id) => !known.includes(id))
+      taskbarOrder.value = [...known, ...missing]
+    }
+  }
+
+  hydrate()
+
+  watch(
+    [accent, blur, radius, effects, specular, jelly, user, accountList, taskbarOrder],
+    () => {
+      try {
+        window.localStorage.setItem(
+          APPEARANCE_KEY,
+          JSON.stringify({
+            accent: accent.value,
+            blur: blur.value,
+            radius: radius.value,
+            effects: effects.value,
+            specular: specular.value,
+            jelly: jelly.value,
+            userId: user.value.id,
+            accountList: accountList.value,
+            taskbarOrder: taskbarOrder.value,
+          } satisfies PersistedState),
+        )
+      } catch {
+        /* 隐私模式下写不进去就算了 */
+      }
+    },
+    { deep: true },
+  )
+
   return {
     panels,
     positions,
@@ -396,9 +495,11 @@ export const useDesktopStore = defineStore('desktop', () => {
     frontPanel,
     openPanel,
     dockPanel,
+    closePanel,
     restorePanel,
     toggleDock,
     raise,
+    cyclePanel,
     placeWindow,
     accent,
     accents,

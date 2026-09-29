@@ -213,10 +213,12 @@ border-color: color-mix(in srgb, var(--accent) 32%, var(--glass-edge));
 项目历史上因 `backdrop-filter` 逐帧重采样出现过明显卡顿，以下为不可违反的规则：
 
 1. 动画只允许碰 `transform` 与 `opacity`。禁止动画 `filter` / `backdrop-filter` / `box-shadow` / `width`。
-2. **任何元素在动画进行中必须摘掉 `backdrop-filter`**，用 `--glass-solid` 顶住观感。已实现的先例：
-   - `GlassWindow.vue` 开合过渡期间
-   - `DesktopShell.vue` `.stage.animating` 期间所有窗口
-   - **本次扩展**：任务栏收起/拖拽、Dock 出入场、覆盖层开合
+   带 `backdrop-filter` 的元素**不要加 `will-change: transform`** —— Chrome 会把背景模糊整个关掉；这类元素本来就已被提升为合成层，不需要这个提示。
+2. **只在"背后真的会变"的层上摘 `backdrop-filter`。** 判断标准是**它背后有没有东西在动**，而不是"它自己有没有在动"：
+   - **正在动的元素自己不要摘**。它背后是静态壁纸与静止的兄弟窗口，滤镜结果可以复用；摘掉会让它先变实、动画结束再变回玻璃，肉眼能明显看到一跳——这就是"打开应用时先不透明一下"的成因。
+   - **它下层的兄弟窗口要摘**。那些窗口每帧都要重新采样一个正在移动的层，是主要卡顿来源 → `DesktopShell.vue` 的 `.stage.animating`，并用 `:not(.win-fade-*-active)` 把正在动的那张排除掉。
+   - **全屏覆盖层（任务视图、搜索面板）不要摘**。它们背后是静止的桌面，成本很低；摘掉会看到"桌面先清晰、过渡结束才突然模糊"——这就是"打开任务视图时隔了一下才模糊"的成因。
+   - **摘模糊时不要顺手改背景色**。壁纸是平滑渐变，有没有模糊几乎看不出差别；把底色换成实心白反而会明显"闪"一下。
 3. 同一屏内同时启用的大面积模糊层（任一边 > 200px）不超过 3 层；小尺寸的 M1 元素（图标、chip、圆形按钮）不受此限。
 4. 果冻的 `scale` 上限：小元素（≤24px，如圆形按钮、图标）可到 `1.12`；卡片类不超过 `1.05`；大面积面板不超过 `1.02`。
 5. `will-change` 仅在动画开始前临时添加，结束后移除；不得常驻。
@@ -488,6 +490,14 @@ theme: {
 - [ ] 正文对比度 ≥ 4.5:1（`--text` on `--glass-base` on `--cream-100`）。
 - [ ] `npm run build` 通过，无 TS 错误。
 - [ ] 窗口开合、任务栏收起、Dock 出入场期间，任一时间点同时启用的模糊层 ≤ 3。
+- [ ] 打开两个以上窗口：最上层那张的标题栏有强调色小点、投影最深；其余那张标题栏明显变淡。
+- [ ] 点背景窗口的正文区域：该窗口立刻升到最前。
+- [ ] 按 `Ctrl+\`` 连续轮转：焦点在窗口之间循环，不出现"卡住不动"。
+- [ ] 调整主题色 / 模糊 / 圆角 / 果冻强度 / 任务栏顺序后刷新页面：全部保持。
+- [ ] 新增账号后刷新：账号仍在，且停在切换过去的那个账号。
+- [ ] 打开窗口的**全过程**（含出现的头几帧）都是玻璃质感，不出现"先实一下再变玻璃"。
+- [ ] 打开任务视图 / 搜索面板的**头几帧**桌面就已模糊，不出现"隔了一下才模糊"。
+- [ ] 拖拽一个窗口经过其他窗口时，其他窗口短暂失去模糊但不改底色，不出现明显"闪白"。
 
 ---
 
@@ -498,6 +508,10 @@ theme: {
 | 令牌全部定义 | `src/style.css` 的 `:root` |
 | 四档材质类 | `src/style.css` 的 `.glass-thin` / `.glass` / `.glass-dense` / `.glass-solid` |
 | 镜面反光驱动 | `src/composables/useSpecular.ts`，在 `DesktopShell.vue` 挂载 |
+| 窗口前台/后台 | `GlassWindow.vue` 的 `active` prop ← `DesktopShell.vue` 的 `isFront()` ← store 的 `frontPanel` |
+| 键盘路径 | `src/composables/useWindowShortcuts.ts`，在 `DesktopShell.vue` 挂载一次 |
+| 窗口轮转规则 | `src/stores/desktop.ts` 的 `cyclePanel()` |
+| 持久化 | `src/stores/desktop.ts` 的 `PersistedState` / `readPersisted()` / `hydrate()` / 统一 `watch`，key 为 `window12.appearance` |
 | 强调色板 | `src/data/palette.ts`（唯一来源，`accounts.ts` 与 store 都从这里取） |
 | 运行时令牌下发 | `src/stores/desktop.ts` 的 `tokens` computed → `DesktopShell.vue` 的 `:style` |
 | 效果开关 | `DesktopShell.vue` 的 `:data-effects` → 命中 `style.css` 的 `[data-effects='off']` |
@@ -510,4 +524,47 @@ theme: {
 1. **中文不圆**：按既定方案，中文回落 PingFang SC / Microsoft YaHei UI，本身不带圆角。若要中文也圆，只需替换字体令牌的中文段，追加阿里妈妈方圆体等子集化自托管字体，其余代码不动。
 2. **镜面反光只在指针设备上可见**：触屏设备没有 hover，反光层始终为 `--gl: 0`，即不可见——不影响观感与可读性。
 3. **大尺寸模糊层的性能**：项目历史上出现过 `backdrop-filter` 逐帧重采样的卡顿，因此所有开合/拖拽过程都会临时摘掉模糊（用 `--glass-solid` 顶替）。新增动画时必须沿用这条规则。
+
+---
+
+## 13. 交互约定
+
+### 13.1 窗口的四个状态
+
+窗口只有四个互斥状态，命名与视觉一一对应，不允许出现第五种含义：
+
+| 状态 | 触发 | 视觉 | 是否挂载 |
+| --- | --- | --- | --- |
+| **前台** | 打开 / 点击窗口任意处 / 键盘轮转切到 | 投影 `--shadow-3`、边 `--glass-edge-strong`、标题栏满不透明、左侧有强调色点 | 是 |
+| **后台** | 打开了别的窗口 | 投影 `--shadow-1`、边虚化、标题栏 `opacity: .6`、无强调色点 | 是 |
+| **收到右侧** | 点标题栏的最小化 | 缩小 0.9 + 右移淡出，出现在右侧 Dock | 是（保留进度） |
+| **关闭** | 点标题栏的 × / 任务视图的 × | 缩放淡出，从任务栏与任务视图消失 | 否 |
+
+**规则**：点窗口的**任意位置**都置顶（不只是标题栏）——否则点背景窗口的正文会像"点了没反应"。
+
+### 13.2 键盘路径
+
+浏览器会吞掉 `Alt+Tab`（归操作系统）、`Ctrl+Tab`（归标签页）、`Ctrl+W` / `Ctrl+Shift+W`（归浏览器窗口），这三组到不了页面。因此只保留以下几条，均确认在主流浏览器中未被占用：
+
+| 组合 | 动作 |
+| --- | --- |
+| `Ctrl+K` | 搜索面板开关（在搜索框内按也能收起） |
+| `Ctrl+\`` | 下一个窗口（按层级轮转） |
+| `Ctrl+Shift+\`` | 上一个窗口 |
+| `Ctrl+Shift+E` | 任务视图开关 |
+| `Esc` | 关闭当前浮层（搜索 / 任务视图 / 账号面板） |
+| `Tab` | 在窗口内的按钮间移动；聚焦窗口外壳后可用方向键移动窗口（`Shift` 加速） |
+
+实现约束：
+- 一律用 `event.code`（如 `KeyK`、`Backquote`）而不是 `event.key`，避免键盘布局差异。
+- 焦点在 `input` / `textarea` / `contenteditable` 里时不抢快捷键（`Ctrl+K` 除外）。
+- 快捷键定义集中在 `src/composables/useWindowShortcuts.ts`，不要在组件里各写一份。
+
+### 13.3 持久化
+
+刷新后必须保持的项：强调色、背景模糊、卡片圆角、透明与模糊开关、镜面反光开关、果冻强度、任务栏应用顺序、账号列表与当前账号。
+
+存储在 `localStorage` 的 `window12.appearance` 下；读档时对不可信数据做区间收敛（`clampNum`）与白名单校验（果冻强度只接受 0 / 0.5 / 1），避免坏数据把界面搞崩。
+
+新增需要持久化的状态时，**加进 `PersistedState` 与那个统一的 `watch`，不要另开一个 key**。
 

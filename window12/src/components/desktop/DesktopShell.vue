@@ -3,8 +3,10 @@ import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useSpecular } from '../../composables/useSpecular'
 import { useWindowDrag } from '../../composables/useWindowDrag'
+import { useWindowShortcuts } from '../../composables/useWindowShortcuts'
 import { games } from '../../data/games'
 import { useDesktopStore } from '../../stores/desktop'
+import type { PanelId } from '../../types/desktop'
 import Arcade from '../arcade/Arcade.vue'
 import GlassWindow from '../common/GlassWindow.vue'
 import PowerScreen from '../overlays/PowerScreen.vue'
@@ -27,6 +29,8 @@ import TaskBar from './TaskBar.vue'
 const desktop = useDesktopStore()
 const {
   panels,
+  docked,
+  frontPanel,
   tokens,
   effects,
   specular,
@@ -42,6 +46,14 @@ const { dockPanel } = desktop
 /* 液态玻璃的镜面反光：整个应用只挂一份监听 */
 useSpecular(() => effects.value && specular.value)
 
+/* 全局键盘路径：Ctrl+K 搜索 / Ctrl+` 切窗口 / Ctrl+Shift+E 任务视图 */
+useWindowShortcuts()
+
+/** 是不是当前最上层的那张窗口（收到右侧的不算） */
+function isFront(id: PanelId) {
+  return panels.value[id] && !docked.value[id] && frontPanel.value === id
+}
+
 /* 舞台元素用模板 ref 挂上，交给拖拽逻辑量可用区域 */
 const stageEl = ref<HTMLElement | null>(null)
 const { winBindings } = useWindowDrag(stageEl)
@@ -52,15 +64,16 @@ const arcadeTitle = computed(() => {
   return game ? `游戏 · ${game.name}` : '游戏'
 })
 
-/* 窗口开合的这段时间里，先把玻璃的 backdrop-filter 收起来：
-   一张窗口在动，其余窗口都要逐帧重算背景模糊，这是多窗口时最大的卡顿来源。
-   时长要盖住最长的开合过渡（退场 0.3s），否则动画没完就恢复模糊会看到一下跳变。 */
+/* 窗口在动（开合 / 收起 / 呼出）的这段时间里，让它下层的兄弟窗口先摘掉背景模糊：
+   一张窗口在动，兄弟窗口每帧都要重算背景模糊，这是多窗口时最大的卡顿来源。
+   注意是"下层的兄弟"，正在动的那张由 CSS 里的 :not(...) 排除掉，不动它。
+   时长要盖住最长的过渡（--dur-3 + 果冻回弹），否则动画没完就恢复模糊会看到跳变。 */
 const WINDOW_ANIM_MS = 340
 const windowsAnimating = ref(false)
 let animTimer: number | undefined
 
 watch(
-  panels,
+  [panels, docked],
   () => {
     windowsAnimating.value = true
     window.clearTimeout(animTimer)
@@ -90,6 +103,7 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
         <div class="win win-explorer" v-bind="winBindings('explorer')">
           <GlassWindow
             :open="panels.explorer"
+            :active="isFront('explorer')"
             title="文件资源管理器"
             icon="mdi-folder-outline"
             @close="panels.explorer = false"
@@ -102,6 +116,7 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
         <div class="win win-settings" v-bind="winBindings('settings')">
           <GlassWindow
             :open="panels.settings"
+            :active="isFront('settings')"
             title="设置 · 个性化"
             icon="mdi-cog-outline"
             @close="panels.settings = false"
@@ -114,6 +129,7 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
         <div class="win win-music" v-bind="winBindings('music')">
           <GlassWindow
             :open="panels.music"
+            :active="isFront('music')"
             title="音乐"
             icon="mdi-music"
             @close="panels.music = false"
@@ -126,6 +142,7 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
         <div class="win win-store" v-bind="winBindings('store')">
           <GlassWindow
             :open="panels.store"
+            :active="isFront('store')"
             class="glass-dense"
             title="应用商店"
             icon="mdi-storefront-outline"
@@ -139,6 +156,7 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
         <div class="win win-arcade" v-bind="winBindings('arcade')">
           <GlassWindow
             :open="panels.arcade"
+            :active="isFront('arcade')"
             class="glass-dense"
             :title="arcadeTitle"
             icon="mdi-gamepad-variant-outline"
@@ -228,13 +246,14 @@ onBeforeUnmount(() => window.clearTimeout(animTimer))
   min-width: 0;
 }
 
-/* 有窗口在开合时，其余窗口也先摘掉背景模糊：一张窗口在动，
-   兄弟窗口的背景每帧都要重新采样，是点 × 卡顿的主因 */
-.stage.animating :deep(.glass-window) {
+/* 有窗口在动时，它下层的兄弟窗口每帧都要重新采样背景模糊，这是多窗口时的主要卡顿来源。
+   两点关键：
+   ① 正在动的那张不摘——它背后是静态壁纸，滤镜可以复用；摘了会让它先变实再变玻璃，肉眼可见。
+   ② 只摘模糊，不改背景。壁纸是平滑渐变，有没有模糊几乎看不出差别；
+      再把底色换成实心白就会明显"闪"一下，这正是之前"应用有一段时间不透明"的原因。 */
+.stage.animating :deep(.glass-window:not(.win-fade-enter-active):not(.win-fade-leave-active)) {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: var(--glass-solid);
-  background-image: none;
 }
 
 /* ------------------------- 浮动卡片：依次浮现与 hover 放大 ------------------------ */

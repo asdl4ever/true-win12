@@ -38,6 +38,10 @@ export function useWindowDrag(stageEl: Ref<HTMLElement | null>) {
 
   function startDrag(panel: PanelId, event: PointerEvent) {
     const target = event.target as HTMLElement
+    /* 点窗口任何地方都把它置顶——只有标题栏才进入拖拽，
+       否则点背景窗口的正文时，用户会觉得"点了没反应" */
+    raise(panel)
+
     if (event.button !== 0 || target.closest('button') || !target.closest('.win-bar')) return
     if (window.matchMedia('(max-width: 1000px)').matches) return
 
@@ -53,7 +57,6 @@ export function useWindowDrag(stageEl: Ref<HTMLElement | null>) {
       el,
     }
     dragging.value = panel
-    raise(panel)
     el.setPointerCapture(event.pointerId)
     event.preventDefault()
   }

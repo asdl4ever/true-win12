@@ -260,6 +260,7 @@ onKeyStroke('Escape', () => {
         <button
           class="tb-search"
           type="button"
+          title="搜索（Ctrl+K）"
           aria-label="搜索"
           :aria-expanded="searchOpen"
           @click="openSearch()"

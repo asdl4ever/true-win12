@@ -7,7 +7,7 @@ import { useDesktopStore } from '../../stores/desktop'
 import type { PanelId } from '../../types/desktop'
 
 const desktop = useDesktopStore()
-const { openPanels, panels, docked, frontPanel, activeGame } = storeToRefs(desktop)
+const { openPanels, docked, frontPanel, activeGame } = storeToRefs(desktop)
 
 /* 游戏窗口的卡片直接显示正在玩的游戏名 */
 function panelTitle(panel: PanelId) {
@@ -41,7 +41,9 @@ onKeyStroke('Escape', () => {
     <div class="tv-inner" @click.self="desktop.closeTaskView()">
       <header class="tv-head">
         <h2 class="tv-title">任务视图</h2>
-        <p class="tv-hint">点卡片切到那个窗口，Esc 关闭</p>
+        <p class="tv-hint">
+          点卡片切到那个窗口；<b>Ctrl+`</b> 直接轮转窗口，<b>Esc</b> 关闭
+        </p>
       </header>
 
       <h3 class="tv-section">
@@ -66,7 +68,7 @@ onKeyStroke('Escape', () => {
             class="tv-close"
             type="button"
             :aria-label="`关闭 ${panelTitle(panel)}`"
-            @click.stop="panels[panel] = false"
+            @click.stop="desktop.closePanel(panel)"
           >
             <v-icon icon="mdi-close" size="13" />
           </button>
@@ -119,6 +121,12 @@ onKeyStroke('Escape', () => {
   margin: 0;
   font-size: var(--fs-label);
   color: var(--text-muted);
+}
+
+.tv-hint b {
+  font-family: var(--display-font);
+  font-weight: var(--fw-semi);
+  color: var(--text);
 }
 
 .tv-section {
@@ -236,12 +244,12 @@ onKeyStroke('Escape', () => {
   color: var(--text-muted);
 }
 
-/* 整层淡入淡出；过渡期间摘掉全屏模糊，避免逐帧重采样 */
+/* 整层淡入淡出。不要在这里摘 backdrop-filter：
+   整层背后是静止的桌面，滤镜结果可以复用，成本很低；
+   摘掉会让桌面先清晰、等过渡结束才"突然"模糊，观感上就是"隔了一下才模糊处理"。 */
 .tv-enter-active,
 .tv-leave-active {
   transition: opacity var(--dur-3) var(--spring-settle);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 .tv-enter-from,

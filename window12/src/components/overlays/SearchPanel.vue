@@ -248,12 +248,10 @@ onMounted(() => field.value?.focus())
 }
 
 /* 进出场：外面淡入，面板再轻轻上浮一点（类名由外层 transition 打到根节点上）。
-   过渡期间摘掉全屏模糊 */
+   同样不摘 backdrop-filter——背后是静止桌面，摘掉会看到"隔了一下才模糊"。 */
 .search-enter-active,
 .search-leave-active {
   transition: opacity var(--dur-3) var(--spring-settle);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 .search-enter-from,
