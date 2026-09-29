@@ -1,35 +1,32 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import GlassWindow from './GlassWindow.vue'
+import { PANEL_LABEL, useDesktopStore, type PanelId } from '../stores/desktop'
 
-type PanelId = 'explorer' | 'settings' | 'widget'
-
-/* --------------------------------- 窗口状态 -------------------------------- */
-
-const panels = ref<Record<PanelId, boolean>>({ explorer: true, settings: true, widget: true })
-
-function togglePanel(id: PanelId) {
-  panels.value[id] = !panels.value[id]
-}
+/* 跨组件共享的状态都在 store 里，这里只保留指针交互相关的本地状态 */
+const desktop = useDesktopStore()
+const {
+  panels,
+  positions,
+  zIndexes,
+  accent,
+  blur,
+  radius,
+  effects,
+  tokens,
+  message: toastText,
+  toasting: toast,
+  selectedIcon: selected,
+  startOpen,
+} = storeToRefs(desktop)
+const { notify, raise, togglePanel, openPanel, placeWindow: clampPlacement } = desktop
+const accents = desktop.accents
 
 /* -------------------------------- 窗口拖拽 -------------------------------- */
 
-const PANEL_LABEL: Record<PanelId, string> = {
-  explorer: '文件资源管理器',
-  settings: '设置 · 个性化',
-  widget: '小组件',
-}
-
 const stageEl = ref<HTMLElement | null>(null)
-/* null 表示还停在样式表给的初始位置 */
-const positions = ref<Record<PanelId, { x: number; y: number } | null>>({
-  explorer: null,
-  settings: null,
-  widget: null,
-})
-const zIndexes = ref<Record<PanelId, number>>({ explorer: 10, settings: 12, widget: 11 })
 const dragging = ref<PanelId | null>(null)
-let topZ = 13
 
 type DragState = {
   panel: PanelId
@@ -41,20 +38,15 @@ type DragState = {
 }
 let dragState: DragState | null = null
 
-function raise(panel: PanelId) {
-  zIndexes.value[panel] = ++topZ
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
-}
-
-/* 约束在桌面范围内，避免卡片被拖出视野或压住任务栏 */
+/* 位置规则在 store 里，这里只负责量出窗口与桌面尺寸 */
 function placeWindow(panel: PanelId, x: number, y: number, el?: HTMLElement) {
-  const stage = stageEl.value
-  const maxX = Math.max(0, (stage?.clientWidth ?? 0) - (el?.offsetWidth ?? 0))
-  const maxY = Math.max(0, (stage?.clientHeight ?? 0) - (el?.offsetHeight ?? 0))
-  positions.value[panel] = { x: clamp(x, 0, maxX), y: clamp(y, 0, maxY) }
+  clampPlacement(
+    panel,
+    x,
+    y,
+    { width: el?.offsetWidth ?? 0, height: el?.offsetHeight ?? 0 },
+    { width: stageEl.value?.clientWidth ?? 0, height: stageEl.value?.clientHeight ?? 0 },
+  )
 }
 
 function startDrag(panel: PanelId, event: PointerEvent) {
@@ -227,16 +219,6 @@ function onBarKey(event: KeyboardEvent) {
   barHidden.value = false
 }
 
-/* ---------------------------------- 反馈 ---------------------------------- */
-
-const toast = ref(false)
-const toastText = ref('')
-
-function notify(text: string) {
-  toastText.value = text
-  toast.value = true
-}
-
 /* ---------------------------------- 时钟 ---------------------------------- */
 
 const now = ref(new Date())
@@ -266,25 +248,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', swallowClick, true)
 })
 
-/* ------------------------------ 外观实时参数 ------------------------------ */
-
-const accent = ref('#6d4ab8')
-const accents = [
-  { name: '紫罗兰', value: '#6d4ab8' },
-  { name: '蜂蜜', value: '#a86a10' },
-  { name: '抹茶', value: '#4f7a44' },
-  { name: '莓果', value: '#a83a68' },
-]
-const blur = ref(24)
-const radius = ref(20)
-const effects = ref(true)
-
-const tokens = computed(() => ({
-  '--accent': accent.value,
-  '--blur': `${effects.value ? blur.value : 0}px`,
-  '--radius': `${radius.value}px`,
-}))
-
 /* -------------------------------- 桌面图标 -------------------------------- */
 
 const desktopIcons = [
@@ -294,11 +257,11 @@ const desktopIcons = [
   { id: 'trash', label: '回收站', icon: 'mdi-trash-can-outline', panel: null },
   { id: 'settings', label: '设置', icon: 'mdi-cog-outline', panel: 'settings' as PanelId | null },
 ]
-const selected = ref<string | null>(null)
-
 function openIcon(icon: (typeof desktopIcons)[number]) {
+  /* 双击打开时清掉选中态，避免图标一直亮着 */
+  selected.value = null
   if (icon.panel) {
-    panels.value[icon.panel] = true
+    openPanel(icon.panel)
     return
   }
   notify(`${icon.label} 暂时打不开`)
@@ -352,7 +315,6 @@ const agenda = [
 
 /* -------------------------------- 开始菜单 -------------------------------- */
 
-const startOpen = ref(false)
 const startQuery = ref('')
 
 const pinned = [
@@ -371,7 +333,7 @@ function openApp(app: (typeof pinned)[number]) {
   startOpen.value = false
   startQuery.value = ''
   if (app.panel) {
-    panels.value[app.panel] = true
+    openPanel(app.panel)
     return
   }
   notify(`${app.label} 正在开发中`)
