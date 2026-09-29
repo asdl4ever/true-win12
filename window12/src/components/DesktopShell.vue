@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import Arcade from './Arcade.vue'
+import GameStore from './GameStore.vue'
 import GlassWindow from './GlassWindow.vue'
-import { PANEL_LABEL, useDesktopStore, type PanelId } from '../stores/desktop'
+import TaskView from './TaskView.vue'
+import {
+  games,
+  PANEL_LABEL,
+  useDesktopStore,
+  type AppEntry,
+  type PanelId,
+} from '../stores/desktop'
 
 /* 跨组件共享的状态都在 store 里，这里只保留指针交互相关的本地状态 */
 const desktop = useDesktopStore()
@@ -19,8 +28,19 @@ const {
   toasting: toast,
   selectedIcon: selected,
   startOpen,
+  taskViewOpen,
+  activeGame,
+  launchableApps,
 } = storeToRefs(desktop)
-const { notify, raise, togglePanel, openPanel, placeWindow: clampPlacement } = desktop
+const {
+  notify,
+  raise,
+  togglePanel,
+  openPanel,
+  toggleTaskView,
+  playGame,
+  placeWindow: clampPlacement,
+} = desktop
 const accents = desktop.accents
 
 /* -------------------------------- 窗口拖拽 -------------------------------- */
@@ -317,21 +337,23 @@ const agenda = [
 
 const startQuery = ref('')
 
-const pinned = [
-  { label: '文件资源管理器', icon: 'mdi-folder-outline', panel: 'explorer' as PanelId | null },
-  { label: '设置', icon: 'mdi-cog-outline', panel: 'settings' as PanelId | null },
-  { label: '小组件', icon: 'mdi-view-dashboard-outline', panel: 'widget' as PanelId | null },
-  { label: '终端', icon: 'mdi-console', panel: null },
-  { label: '音乐', icon: 'mdi-music', panel: null },
-  { label: '照片', icon: 'mdi-image-outline', panel: null },
-]
-const filteredPinned = computed(() =>
-  pinned.filter((app) => app.label.includes(startQuery.value.trim())),
+/* 应用清单在 store 里，装了游戏会一并出现；任务视图用的是同一份 */
+const filteredApps = computed(() =>
+  launchableApps.value.filter((app) => app.label.includes(startQuery.value.trim())),
 )
 
-function openApp(app: (typeof pinned)[number]) {
+const arcadeTitle = computed(() => {
+  const game = games.find((item) => item.id === activeGame.value)
+  return game ? `游戏 · ${game.name}` : '游戏'
+})
+
+function openApp(app: AppEntry) {
   startOpen.value = false
   startQuery.value = ''
+  if (app.game) {
+    playGame(app.game)
+    return
+  }
   if (app.panel) {
     openPanel(app.panel)
     return
@@ -556,6 +578,30 @@ function openApp(app: (typeof pinned)[number]) {
             </div>
           </GlassWindow>
         </div>
+
+        <div class="win win-store" v-bind="winBindings('store')">
+          <GlassWindow
+            v-if="panels.store"
+            class="glass-dense"
+            title="应用商店"
+            icon="mdi-storefront-outline"
+            @close="panels.store = false"
+          >
+            <GameStore />
+          </GlassWindow>
+        </div>
+
+        <div class="win win-arcade" v-bind="winBindings('arcade')">
+          <GlassWindow
+            v-if="panels.arcade"
+            class="glass-dense"
+            :title="arcadeTitle"
+            icon="mdi-gamepad-variant-outline"
+            @close="panels.arcade = false"
+          >
+            <Arcade />
+          </GlassWindow>
+        </div>
       </section>
     </main>
 
@@ -583,7 +629,14 @@ function openApp(app: (typeof pinned)[number]) {
         <v-icon icon="mdi-magnify" size="15" />
         <span>搜索</span>
       </button>
-      <button class="tb-btn" type="button" aria-label="任务视图" @click="notify('任务视图正在开发中')">
+      <button
+        class="tb-btn"
+        :class="{ running: taskViewOpen }"
+        type="button"
+        aria-label="任务视图"
+        :aria-expanded="taskViewOpen"
+        @click="toggleTaskView()"
+      >
         <v-icon icon="mdi-view-dashboard-outline" size="20" />
       </button>
       <button
@@ -594,6 +647,15 @@ function openApp(app: (typeof pinned)[number]) {
         @click="togglePanel('explorer')"
       >
         <v-icon icon="mdi-folder-outline" size="20" />
+      </button>
+      <button
+        class="tb-btn"
+        :class="{ running: panels.store }"
+        type="button"
+        aria-label="应用商店"
+        @click="togglePanel('store')"
+      >
+        <v-icon icon="mdi-storefront-outline" size="20" />
       </button>
       <button class="tb-btn" type="button" aria-label="终端" @click="notify('终端正在开发中')">
         <v-icon icon="mdi-console" size="20" />
@@ -641,8 +703,8 @@ function openApp(app: (typeof pinned)[number]) {
         <p class="start-heading">已固定</p>
         <div class="tiles">
           <button
-            v-for="app in filteredPinned"
-            :key="app.label"
+            v-for="app in filteredApps"
+            :key="app.id"
             class="tile"
             type="button"
             @click="openApp(app)"
@@ -650,7 +712,7 @@ function openApp(app: (typeof pinned)[number]) {
             <v-icon :icon="app.icon" size="23" />
             <span>{{ app.label }}</span>
           </button>
-          <p v-if="!filteredPinned.length" class="empty">没有找到匹配的应用</p>
+          <p v-if="!filteredApps.length" class="empty">没有找到匹配的应用</p>
         </div>
 
         <p class="start-heading">最近</p>
@@ -674,6 +736,10 @@ function openApp(app: (typeof pinned)[number]) {
           />
         </div>
       </section>
+    </transition>
+
+    <transition name="tv">
+      <TaskView v-if="taskViewOpen" />
     </transition>
 
     <v-snackbar
@@ -810,6 +876,23 @@ function openApp(app: (typeof pinned)[number]) {
   width: min(300px, 25vw);
   z-index: 11;
   --d: 0.34s;
+}
+
+/* 商店与游戏默认不开，位置留给它们展开时用 */
+.win-store {
+  left: min(300px, 22vw);
+  top: 6%;
+  width: min(560px, 40vw);
+  z-index: 13;
+  --d: 0.46s;
+}
+
+.win-arcade {
+  left: min(360px, 26vw);
+  top: 13%;
+  width: min(430px, 34vw);
+  z-index: 14;
+  --d: 0.58s;
 }
 
 /* 拖动中的卡片：贴指针跟随，不做放大与阴影变化 */
